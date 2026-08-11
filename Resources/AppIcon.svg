@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Voxpen glass nib app icon</title>
+  <defs>
+    <path id="tile" d="M348 0H676C832.4 0 910.6 0 949.7 20.9C976.8 35.4 988.6 47.2 1003.1 74.3C1024 113.4 1024 191.6 1024 348V676C1024 832.4 1024 910.6 1003.1 949.7C988.6 976.8 976.8 988.6 949.7 1003.1C910.6 1024 832.4 1024 676 1024H348C191.6 1024 113.4 1024 74.3 1003.1C47.2 988.6 35.4 976.8 20.9 949.7C0 910.6 0 832.4 0 676V348C0 191.6 0 113.4 20.9 74.3C35.4 47.2 47.2 35.4 74.3 20.9C113.4 0 191.6 0 348 0Z"/>
+    <clipPath id="tile-clip">
+      <use xlink:href="#tile"/>
+    </clipPath>
+    <linearGradient id="tile-fill" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#1a4a3c"/>
+      <stop offset="0.45" stop-color="#0e2f28"/>
+      <stop offset="1" stop-color="#061512"/>
+    </linearGradient>
+    <radialGradient id="tile-glow" cx="0.3" cy="0.06" r="0.85">
+      <stop offset="0" stop-color="#a8f2cc" stop-opacity="0.28"/>
+      <stop offset="0.55" stop-color="#a8f2cc" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#a8f2cc" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rim-light" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.62"/>
+      <stop offset="0.34" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="0.72" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.16"/>
+    </linearGradient>
+    <linearGradient id="nib-fill" x1="0.18" y1="0" x2="0.72" y2="1">
+      <stop offset="0" stop-color="#f2fff7"/>
+      <stop offset="0.34" stop-color="#c8f3da"/>
+      <stop offset="0.78" stop-color="#93dcb4"/>
+      <stop offset="1" stop-color="#79cba2"/>
+    </linearGradient>
+    <linearGradient id="nib-rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="0.3" stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cut-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#04120f"/>
+      <stop offset="1" stop-color="#0c2a22"/>
+    </linearGradient>
+    <linearGradient id="tip-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe4a6"/>
+      <stop offset="1" stop-color="#f0b845"/>
+    </linearGradient>
+    <filter id="nib-shadow" x="-40%" y="-40%" width="180%" height="190%">
+      <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#020c0a" flood-opacity="0.55"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#020c0a" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <g clip-path="url(#tile-clip)">
+    <use xlink:href="#tile" fill="url(#tile-fill)"/>
+    <use xlink:href="#tile" fill="url(#tile-glow)"/>
+    <ellipse cx="330" cy="-40" rx="620" ry="330" fill="#ffffff" opacity="0.07"/>
+
+    <g transform="translate(512 512) scale(0.78) translate(-512 -512)">
+      <g filter="url(#nib-shadow)">
+        <path d="M330 254.5A182.5 182.5 0 0 1 695 254.5V546C695 592 674 602 668 628L523 866Q512 884 501 866L356 628C350 602 330 592 330 546Z" fill="url(#nib-fill)"/>
+      </g>
+      <path d="M330 254.5A182.5 182.5 0 0 1 695 254.5V546C695 592 674 602 668 628L523 866Q512 884 501 866L356 628C350 602 330 592 330 546Z" fill="none" stroke="url(#nib-rim)" stroke-width="7"/>
+
+      <g fill="#ffffff" opacity="0.28">
+        <rect x="353" y="337" width="44" height="71" rx="22"/>
+        <rect x="418" y="281" width="44" height="181" rx="22"/>
+        <rect x="490" y="228" width="44" height="289" rx="22"/>
+        <rect x="561" y="289" width="44" height="166" rx="22"/>
+        <rect x="627" y="334" width="44" height="76" rx="22"/>
+        <circle cx="512" cy="669" r="25"/>
+        <rect x="505" y="669" width="14" height="215" rx="7"/>
+      </g>
+      <g fill="url(#cut-fill)">
+        <rect x="353" y="331" width="44" height="71" rx="22"/>
+        <rect x="418" y="275" width="44" height="181" rx="22"/>
+        <rect x="490" y="222" width="44" height="289" rx="22"/>
+        <rect x="561" y="283" width="44" height="166" rx="22"/>
+        <rect x="627" y="328" width="44" height="76" rx="22"/>
+        <circle cx="512" cy="663" r="25"/>
+        <rect x="505" y="663" width="14" height="215" rx="7"/>
+      </g>
+      <rect x="505" y="872" width="14" height="66" rx="7" fill="#f0b845"/>
+      <rect x="505" y="872" width="14" height="34" rx="7" fill="url(#tip-fill)" opacity="0.85"/>
+    </g>
+
+    <use xlink:href="#tile" fill="none" stroke="url(#rim-light)" stroke-width="6"/>
+  </g>
+</svg>

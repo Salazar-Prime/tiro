@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #0b0d0c; }
+  a { color: #9ee3bd; }
+  a:hover { color: #c8f2dc; }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#0b0d0c;color:#e8eeea;font-family:'Inter Tight',system-ui,sans-serif;padding:64px 56px 96px;box-sizing:border-box">
+
+  <svg width="0" height="0" style="position:absolute;pointer-events:none" aria-hidden="true">
+    <defs>
+      <path id="sqPath" d="M348 0 L676 0 C832.4 0 910.6 0 949.7 20.9 C976.8 35.4 988.6 47.2 1003.1 74.3 C1024 113.4 1024 191.6 1024 348 L1024 676 C1024 832.4 1024 910.6 1003.1 949.7 C988.6 976.8 976.8 988.6 949.7 1003.1 C910.6 1024 832.4 1024 676 1024 L348 1024 C191.6 1024 113.4 1024 74.3 1003.1 C47.2 988.6 35.4 976.8 20.9 949.7 C0 910.6 0 832.4 0 676 L0 348 C0 191.6 0 113.4 20.9 74.3 C35.4 47.2 47.2 35.4 74.3 20.9 C113.4 0 191.6 0 348 0 Z" />
+      <clipPath id="sqClip"><use href="#sqPath" /></clipPath>
+      <clipPath id="bpClip"><rect x="{{ bpX }}" y="0" width="512" height="1024" /></clipPath>
+
+      <linearGradient id="tileFill" x1="0" y1="0" x2="0.35" y2="1">
+        <stop offset="0" stop-color="#1a4a3c" />
+        <stop offset="0.45" stop-color="#0e2f28" />
+        <stop offset="1" stop-color="#061512" />
+      </linearGradient>
+      <radialGradient id="tileGlow" cx="0.3" cy="0.06" r="0.85">
+        <stop offset="0" stop-color="#a8f2cc" stop-opacity="0.28" />
+        <stop offset="0.55" stop-color="#a8f2cc" stop-opacity="0.04" />
+        <stop offset="1" stop-color="#a8f2cc" stop-opacity="0" />
+      </radialGradient>
+      <linearGradient id="rimLight" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffffff" stop-opacity="0.62" />
+        <stop offset="0.34" stop-color="#ffffff" stop-opacity="0.06" />
+        <stop offset="0.72" stop-color="#ffffff" stop-opacity="0" />
+        <stop offset="1" stop-color="#ffffff" stop-opacity="0.16" />
+      </linearGradient>
+      <linearGradient id="nibFill" x1="0.18" y1="0" x2="0.72" y2="1">
+        <stop offset="0" stop-color="#f2fff7" />
+        <stop offset="0.34" stop-color="#c8f3da" />
+        <stop offset="0.78" stop-color="#93dcb4" />
+        <stop offset="1" stop-color="#79cba2" />
+      </linearGradient>
+      <linearGradient id="nibRim" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffffff" stop-opacity="0.9" />
+        <stop offset="0.3" stop-color="#ffffff" stop-opacity="0.15" />
+        <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+      </linearGradient>
+      <linearGradient id="cutFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#04120f" />
+        <stop offset="1" stop-color="#0c2a22" />
+      </linearGradient>
+      <linearGradient id="tipFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffe4a6" />
+        <stop offset="1" stop-color="#f0b845" />
+      </linearGradient>
+      <linearGradient id="bpBg" x1="0" y1="0" x2="0.4" y2="1">
+        <stop offset="0" stop-color="#0d2450" />
+        <stop offset="1" stop-color="#050f26" />
+      </linearGradient>
+      <filter id="nibShadow" x="-40%" y="-40%" width="180%" height="190%">
+        <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#020c0a" flood-opacity="0.55" />
+        <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#020c0a" flood-opacity="0.35" />
+      </filter>
+      <pattern id="bpGrid" width="64" height="64" patternUnits="userSpaceOnUse">
+        <path d="M64 0 L0 0 L0 64" fill="none" stroke="#79b0ff" stroke-opacity="0.2" stroke-width="1.5" />
+      </pattern>
+      <pattern id="bpGridMajor" width="256" height="256" patternUnits="userSpaceOnUse">
+        <path d="M256 0 L0 0 L0 256" fill="none" stroke="#8fc0ff" stroke-opacity="0.4" stroke-width="2.5" />
+      </pattern>
+
+      <g id="nibArt" transform="translate(512,512) scale({{ markScale }}) translate(-512,-512)">
+        <g filter="url(#nibShadow)">
+          <path d="M330 254.5 A182.5 182.5 0 0 1 695 254.5 L695 546 C695 592 674 602 668 628 L523 866 Q512 884 501 866 L356 628 C350 602 330 592 330 546 Z" fill="url(#nibFill)" />
+        </g>
+        <path d="M330 254.5 A182.5 182.5 0 0 1 695 254.5 L695 546 C695 592 674 602 668 628 L523 866 Q512 884 501 866 L356 628 C350 602 330 592 330 546 Z" fill="none" stroke="url(#nibRim)" stroke-width="7" />
+        <g fill="#ffffff" opacity="0.28">
+          <rect x="353" y="337" width="44" height="71" rx="22" />
+          <rect x="418" y="281" width="44" height="181" rx="22" />
+          <rect x="490" y="228" width="44" height="289" rx="22" />
+          <rect x="561" y="289" width="44" height="166" rx="22" />
+          <rect x="627" y="334" width="44" height="76" rx="22" />
+          <circle cx="512" cy="669" r="25" />
+          <rect x="505" y="669" width="14" height="215" rx="7" />
+        </g>
+        <g fill="url(#cutFill)">
+          <rect x="353" y="331" width="44" height="71" rx="22" />
+          <rect x="418" y="275" width="44" height="181" rx="22" />
+          <rect x="490" y="222" width="44" height="289" rx="22" />
+          <rect x="561" y="283" width="44" height="166" rx="22" />
+          <rect x="627" y="328" width="44" height="76" rx="22" />
+          <circle cx="512" cy="663" r="25" />
+          <rect x="505" y="663" width="14" height="215" rx="7" />
+        </g>
+        <rect x="505" y="872" width="14" height="66" rx="7" fill="{{ tipColor }}" />
+        <rect x="505" y="872" width="14" height="34" rx="7" fill="url(#tipFill)" opacity="0.85" />
+      </g>
+
+      <symbol id="icoGlass" viewBox="0 0 1024 1024">
+        <g clip-path="url(#sqClip)">
+          <use href="#sqPath" fill="url(#tileFill)" />
+          <use href="#sqPath" fill="url(#tileGlow)" />
+          <ellipse cx="330" cy="-40" rx="620" ry="330" fill="#ffffff" opacity="0.07" />
+          <use href="#nibArt" />
+          <use href="#sqPath" fill="none" stroke="url(#rimLight)" stroke-width="6" />
+        </g>
+      </symbol>
+
+      <symbol id="icoBlueprint" viewBox="0 0 1024 1024">
+        <g clip-path="url(#sqClip)">
+          <use href="#sqPath" fill="url(#tileFill)" />
+          <use href="#sqPath" fill="url(#tileGlow)" />
+          <ellipse cx="330" cy="-40" rx="620" ry="330" fill="#ffffff" opacity="0.07" />
+          <use href="#nibArt" />
+          <g clip-path="url(#bpClip)">
+            <use href="#sqPath" fill="url(#bpBg)" />
+            <rect x="0" y="0" width="1024" height="1024" fill="url(#bpGrid)" />
+            <rect x="0" y="0" width="1024" height="1024" fill="url(#bpGridMajor)" />
+            <g fill="none" stroke="#8ec2ff" stroke-opacity="0.55" stroke-width="2.5">
+              <circle cx="512" cy="512" r="384" />
+              <rect x="192" y="192" width="640" height="640" rx="150" />
+              <rect x="256" y="174" width="512" height="676" rx="96" />
+              <rect x="174" y="256" width="676" height="512" rx="96" />
+              <line x1="512" y1="0" x2="512" y2="1024" />
+              <line x1="0" y1="512" x2="1024" y2="512" />
+            </g>
+            <use href="#sqPath" fill="none" stroke="#a9d3ff" stroke-opacity="0.75" stroke-width="5" />
+            <g transform="translate(512,512) scale({{ markScale }}) translate(-512,-512)" fill="none" stroke="#dcefff" stroke-width="6" stroke-opacity="0.95">
+              <path d="M330 254.5 A182.5 182.5 0 0 1 695 254.5 L695 546 C695 592 674 602 668 628 L523 866 Q512 884 501 866 L356 628 C350 602 330 592 330 546 Z" />
+              <g stroke-width="4" stroke-opacity="0.8">
+                <rect x="353" y="331" width="44" height="71" rx="22" />
+                <rect x="418" y="275" width="44" height="181" rx="22" />
+                <rect x="490" y="222" width="44" height="289" rx="22" />
+                <rect x="561" y="283" width="44" height="166" rx="22" />
+                <rect x="627" y="328" width="44" height="76" rx="22" />
+                <circle cx="512" cy="663" r="25" />
+                <path d="M512 663 L512 938" />
+              </g>
+            </g>
+          </g>
+          <line x1="512" y1="0" x2="512" y2="1024" stroke="#ffffff" stroke-opacity="0.35" stroke-width="3" />
+          <use href="#sqPath" fill="none" stroke="url(#rimLight)" stroke-width="6" />
+        </g>
+      </symbol>
+    </defs>
+  </svg>
+
+  <header style="max-width:1240px;margin:0 auto 56px;display:flex;flex-direction:column;gap:10px">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#7f9a8c">macOS app icon · 1024 × 1024</div>
+    <h1 style="margin:0;font-size:38px;font-weight:600;letter-spacing:-0.02em">Voxpen — glass nib</h1>
+    <p style="margin:0;max-width:560px;font-size:15px;line-height:1.55;color:#98aaa1;text-wrap:pretty">Mint nib and waveform held in a tinted glass tile: layered depth, top specular edge, engraved cutouts. The blueprint cut shows the Apple icon grid and keyline shapes underneath.</p>
+  </header>
+
+  <div style="max-width:1240px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:40px">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="border-radius:24px;background:linear-gradient(160deg,#161918,#101312);border:1px solid #1f2523;padding:56px;display:flex;align-items:center;justify-content:center">
+        <svg viewBox="0 0 1024 1024" width="440" height="440" style="filter:drop-shadow(0 34px 60px rgba(0,0,0,0.6))"><use href="#icoGlass" /></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:15px;font-weight:600">Final</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7f9a8c">AppIcon · 1024pt master</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="border-radius:24px;background:linear-gradient(160deg,#161918,#101312);border:1px solid #1f2523;padding:56px;display:flex;align-items:center;justify-content:center">
+        <svg viewBox="0 0 1024 1024" width="440" height="440" style="filter:drop-shadow(0 34px 60px rgba(0,0,0,0.6))"><use href="#icoBlueprint" /></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:15px;font-weight:600">Blueprint cut</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7f9a8c">Grid 64pt · keylines: circle, squircle, portrait, landscape</div>
+      </div>
+    </div>
+  </div>
+
+  <section style="max-width:1240px;margin:88px auto 0;border-top:1px solid #1f2523;padding-top:44px">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#7f9a8c;margin-bottom:36px">Size ladder</div>
+    <div style="display:flex;align-items:flex-end;gap:48px;flex-wrap:wrap">
+      <sc-for list="{{ sizes }}" as="s" hint-placeholder-count="6">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
+          <svg viewBox="0 0 1024 1024" width="{{ s.px }}" height="{{ s.px }}"><use href="#icoGlass" /></svg>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7f9a8c">{{ s.label }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;blueprintSide&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;left&quot;,&quot;right&quot;],&quot;default&quot;:&quot;right&quot;,&quot;tsType&quot;:&quot;'left' | 'right'&quot;},&quot;markScale&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.6,&quot;max&quot;:0.95,&quot;step&quot;:0.01,&quot;default&quot;:0.78,&quot;tsType&quot;:&quot;number&quot;},&quot;tipColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;options&quot;:[&quot;#f0b845&quot;,&quot;#ff8a4c&quot;,&quot;#7fd4ff&quot;,&quot;#ffffff&quot;],&quot;default&quot;:&quot;#f0b845&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      bpX: (this.props.blueprintSide ?? "right") === "left" ? 0 : 512,
+      markScale: this.props.markScale ?? 0.78,
+      tipColor: this.props.tipColor ?? "#f0b845",
+      sizes: [512, 256, 128, 64, 32, 16].map(px => ({ px, label: px + "px" }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>
