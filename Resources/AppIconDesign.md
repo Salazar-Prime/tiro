@@ -1,4 +1,4 @@
-# Production app icon
+# Tiro production app icon
 
 The production icon is derived from the `Final` SVG composition in `Apple glass icon design/Voxpen App Icon.dc.html`.
 

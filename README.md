@@ -1,59 +1,54 @@
-# Voice Type
+<p align="center">
+  <img src="Resources/AppIcon.png" width="144" alt="Tiro blueprint icon">
+</p>
 
-Voice Type is a tiny, native macOS voice-typing utility. Hold <kbd>Control</kbd> + <kbd>Option</kbd>, speak, and release: Voice Type pauses active media, mutes system output while it records, sends the completed recording to OpenAI, and inserts the transcript into the focused text field.
+<h1 align="center">Tiro</h1>
 
-The app lives in the menu bar and shows a small signal capsule at the right edge of the active screen while it listens.
+<p align="center">Hold a shortcut, speak, and put the transcript at your cursor.</p>
 
-After the initial installation, Voice Type checks its signed GitHub update feed automatically. You can also choose **Check for Updates…** from the menu-bar icon.
+<p align="center">
+  <img src="https://img.shields.io/badge/status-public_beta-2f6b5d" alt="Public beta">
+  <img src="https://img.shields.io/badge/macOS-14%2B-1f2937" alt="macOS 14 or newer">
+  <img src="https://img.shields.io/badge/architecture-Apple_silicon-1f2937" alt="Apple silicon">
+  <img src="https://img.shields.io/badge/Swift-6-f05138" alt="Swift 6">
+</p>
+
+<p align="center"><a href="https://github.com/Salazar-Prime/tiro/releases">Download the public beta</a></p>
+
+Tiro is a small native macOS menu-bar app for voice typing. It pauses active media, mutes system output while recording, sends the finished recording to OpenAI, and inserts the transcript into the focused text field.
 
 ## Shortcuts
 
 | Gesture | Result |
 | --- | --- |
-| Hold <kbd>Control</kbd> + <kbd>Option</kbd> | Record while held; transcribe and insert on release |
+| Hold <kbd>Control</kbd> + <kbd>Option</kbd> | Record; release to transcribe and insert |
 | Double-tap <kbd>Control</kbd> + <kbd>Option</kbd> | Lock recording hands-free |
-| Press <kbd>Control</kbd> + <kbd>Option</kbd> while locked | Stop, transcribe, and insert |
-| <kbd>Control</kbd> + <kbd>Command</kbd> + <kbd>V</kbd> | Insert the last Voice Type transcript again |
+| Press <kbd>Control</kbd> + <kbd>Option</kbd> while locked | Stop and insert |
+| <kbd>Control</kbd> + <kbd>Command</kbd> + <kbd>V</kbd> | Insert the last transcript again |
 
-Transcripts are saved in Voice Type's on-device history. Regular <kbd>Command</kbd> + <kbd>V</kbd> keeps working as usual, while <kbd>Control</kbd> + <kbd>Command</kbd> + <kbd>V</kbd> inserts the latest saved transcript. If direct Accessibility insertion is unavailable in the focused app, Voice Type briefly bridges the transcript through the macOS pasteboard, invokes the target app's native Paste command, and restores the prior pasteboard contents. The bridge is local-only and marked transient and auto-generated so compatible clipboard-history apps do not retain it.
+## Setup
 
-Automatic insertion always uses the active application, focused text field, and cursor position when transcription finishes. Voice Type does not return to the field where recording started.
+You need macOS 14 or newer, an OpenAI API key with API billing enabled, and Microphone and Accessibility permission. The API key stays in macOS Keychain.
 
-## Requirements
+Public beta builds are Sparkle-signed but not yet Apple-notarized. On first launch, macOS may require you to Control-click Tiro and choose **Open**.
 
-- macOS 14 or newer
-- An OpenAI API key with API billing enabled
-- Microphone and Accessibility permission
-
-Voice Type uses the `gpt-4o-mini-transcribe` model with English language guidance and an editable transcription prompt. It uses the `/v1/audio/transcriptions` endpoint described in the [official OpenAI documentation](https://developers.openai.com/api/docs/guides/speech-to-text). The API key is stored in macOS Keychain and is never committed to the repository.
-
-## Build and run
+## Build
 
 ```sh
-git clone https://github.com/Salazar-Prime/voice-type.git
-cd voice-type
+git clone https://github.com/Salazar-Prime/tiro.git
+cd tiro
 ./Scripts/build-app.sh
-open "dist/Voice Type.app"
+open "dist/Tiro.app"
 ```
 
-On first launch:
+Move `Tiro.app` to `/Applications` before granting permissions so macOS can keep them stable across updates.
 
-1. Paste an OpenAI API key into the settings window and choose **Save**.
-2. Grant Microphone access.
-3. Grant Accessibility access. If macOS asks, relaunch Voice Type afterward.
+## Privacy
 
-For stable macOS privacy permissions, move `Voice Type.app` from `dist` into `/Applications` before granting access.
-
-The build script uses the `VOICE_TYPE_SIGNING_IDENTITY` environment variable when supplied. On the primary development Mac it otherwise uses the local **Voice Type Local Signing** identity so Accessibility and microphone approvals survive updates. Public distribution should use an Apple Developer ID Application identity.
-
-## Privacy behavior
-
-- Recording starts only for the configured shortcut gesture.
-- An active macOS Now Playing session is paused during recording and resumed only if Voice Type paused it. Output mute and volume controls—including aggregate-device subchannels—are restored to their exact previous values when recording stops or is cancelled.
-- Audio is uploaded to OpenAI after recording stops; this first version does not stream partial audio.
-- Each temporary `.m4a` recording is deleted after the request completes.
-- Transcript history is stored on this Mac in the user's Application Support folder and can be copied, deleted individually, or cleared from the menu-bar app.
-- Voice Type restores the prior system pasteboard after using it as a short-lived, local-only compatibility bridge in apps that reject direct Accessibility insertion. The temporary content is marked transient and auto-generated for clipboard-history apps.
+- Recording starts only when you use the shortcut.
+- Temporary audio is deleted after transcription.
+- Transcript history stays on this Mac and can be cleared at any time.
+- Any temporary pasteboard content is restored and marked to keep it out of compatible clipboard-history apps.
 
 ## Development
 
@@ -62,10 +57,4 @@ swift test
 swift build
 ```
 
-Beta releases follow [APP_PUBLISH.md](APP_PUBLISH.md). To prepare a signed Sparkle archive and update the appcast after incrementing both bundle versions and writing `RELEASE_NOTES.md`:
-
-```sh
-./Scripts/prepare-update.sh
-```
-
-The app uses SwiftUI/AppKit, AVFoundation, the macOS Accessibility API, Security/Keychain, and Sparkle 2 for signed in-app updates.
+Beta releases follow [APP_PUBLISH.md](APP_PUBLISH.md). Tiro uses SwiftUI/AppKit, AVFoundation, Security/Keychain, OpenAI transcription, and Sparkle 2.

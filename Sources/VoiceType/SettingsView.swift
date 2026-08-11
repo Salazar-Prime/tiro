@@ -29,7 +29,7 @@ struct SettingsView: View {
     private var header: some View {
         HStack(alignment: .top, spacing: 18) {
             VStack(alignment: .leading, spacing: 7) {
-                Text("VOICE TYPE")
+                Text("TIRO")
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
                     .tracking(1.6)
                     .foregroundStyle(palette.coral)
@@ -205,7 +205,7 @@ struct SettingsView: View {
     }
 
     private var privacyNote: some View {
-        Text("System output is muted only while Voice Type records and restored when recording stops. Audio is then sent to OpenAI and deleted after transcription. Transcript history is saved on this Mac and can be cleared from Voice Type’s menu-bar history window.")
+        Text("System output is muted only while Tiro records and restored when recording stops. Audio is then sent to OpenAI and deleted after transcription. Transcript history is saved on this Mac and can be cleared from Tiro’s menu-bar history window.")
             .font(.system(size: 11.5, weight: .regular))
             .foregroundStyle(palette.ink.opacity(0.64))
             .fixedSize(horizontal: false, vertical: true)

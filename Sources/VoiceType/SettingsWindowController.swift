@@ -7,7 +7,7 @@ final class SettingsWindowController: NSWindowController {
         let rootView = SettingsView(model: model)
         let hosting = NSHostingController(rootView: rootView)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Voice Type"
+        window.title = "Tiro"
         window.setContentSize(NSSize(width: 520, height: 700))
         window.minSize = NSSize(width: 480, height: 560)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]

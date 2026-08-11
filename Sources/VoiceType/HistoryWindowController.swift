@@ -6,7 +6,7 @@ final class HistoryWindowController: NSWindowController {
     init(store: TranscriptHistoryStore) {
         let hosting = NSHostingController(rootView: HistoryView(store: store))
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Voice Type History"
+        window.title = "Tiro History"
         window.setContentSize(NSSize(width: 620, height: 590))
         window.minSize = NSSize(width: 500, height: 440)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]

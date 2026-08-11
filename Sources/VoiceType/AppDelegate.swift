@@ -99,11 +99,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, @preconcurrency SPUSta
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(
             systemSymbolName: "waveform.and.mic",
-            accessibilityDescription: "Voice Type"
+            accessibilityDescription: "Tiro"
         )
 
         let menu = NSMenu()
-        let heading = NSMenuItem(title: "Voice Type", action: nil, keyEquivalent: "")
+        let heading = NSMenuItem(title: "Tiro", action: nil, keyEquivalent: "")
         heading.isEnabled = false
         menu.addItem(heading)
         menu.addItem(.separator())
@@ -143,7 +143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, @preconcurrency SPUSta
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit Voice Type",
+            title: "Quit Tiro",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )
@@ -161,7 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, @preconcurrency SPUSta
         updateMenuItem?.title = "Update \(update.displayVersionString) Available…"
         statusItem?.button?.image = NSImage(
             systemSymbolName: "arrow.down.circle.fill",
-            accessibilityDescription: "Voice Type update available"
+            accessibilityDescription: "Tiro update available"
         )
     }
 
@@ -177,7 +177,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, @preconcurrency SPUSta
         updateMenuItem?.title = "Check for Updates…"
         statusItem?.button?.image = NSImage(
             systemSymbolName: "waveform.and.mic",
-            accessibilityDescription: "Voice Type"
+            accessibilityDescription: "Tiro"
         )
     }
 }

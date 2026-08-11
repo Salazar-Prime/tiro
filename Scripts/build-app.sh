@@ -4,7 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR=${0:A:h}
 PROJECT_DIR=${SCRIPT_DIR:h}
-APP_BUNDLE="$PROJECT_DIR/dist/Voice Type.app"
+APP_BUNDLE="$PROJECT_DIR/dist/Tiro.app"
 CONTENTS_DIR="$APP_BUNDLE/Contents"
 FRAMEWORKS_DIR="$CONTENTS_DIR/Frameworks"
 
@@ -24,7 +24,9 @@ if [[ -z "$SPARKLE_FRAMEWORK" ]]; then
 fi
 ditto "$SPARKLE_FRAMEWORK" "$FRAMEWORKS_DIR/Sparkle.framework"
 
-if [[ -n "${VOICE_TYPE_SIGNING_IDENTITY:-}" ]]; then
+if [[ -n "${TIRO_SIGNING_IDENTITY:-}" ]]; then
+    SIGNING_IDENTITY="$TIRO_SIGNING_IDENTITY"
+elif [[ -n "${VOICE_TYPE_SIGNING_IDENTITY:-}" ]]; then
     SIGNING_IDENTITY="$VOICE_TYPE_SIGNING_IDENTITY"
 elif security find-identity -v -p codesigning | grep -Fq '"Voice Type Local Signing"'; then
     SIGNING_IDENTITY="Voice Type Local Signing"

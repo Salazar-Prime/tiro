@@ -1,6 +1,6 @@
-# Voice Type public beta
+# Tiro public beta 2
 
-Voice Type is ready for broader testing.
+Voice Type is now Tiro.
 
-- A new app icon and a polished light and dark appearance.
-- More reliable voice typing, media controls, and transcript pasting.
+- A shorter name and a simpler project page.
+- The same shortcuts, settings, history, and signed updates.

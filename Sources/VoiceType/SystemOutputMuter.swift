@@ -87,7 +87,7 @@ final class SystemOutputMuter {
         if pausedMediaPlayback {
             pausedMediaPlayback = false
             if VTMediaPlaybackSendPlay() {
-                logger.info("Resumed the Now Playing session paused by Voice Type")
+                logger.info("Resumed the Now Playing session paused by Tiro")
             } else {
                 logger.error("Could not resume the paused Now Playing session")
             }

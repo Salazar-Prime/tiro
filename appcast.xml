@@ -1,63 +1,23 @@
 <?xml version="1.0" standalone="yes"?>
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
-        <title>Voice Type</title>
+        <title>Tiro</title>
         <item>
-            <title>0.5.0-beta.1</title>
-            <pubDate>Tue, 11 Aug 2026 16:42:38 -0400</pubDate>
-            <link>https://github.com/Salazar-Prime/voice-type</link>
-            <sparkle:version>10</sparkle:version>
-            <sparkle:shortVersionString>0.5.0-beta.1</sparkle:shortVersionString>
+            <title>0.5.0-beta.2</title>
+            <pubDate>Tue, 11 Aug 2026 16:55:58 -0400</pubDate>
+            <link>https://github.com/Salazar-Prime/tiro</link>
+            <sparkle:version>11</sparkle:version>
+            <sparkle:shortVersionString>0.5.0-beta.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Voice Type public beta
+            <description sparkle:format="markdown"><![CDATA[# Tiro public beta 2
 
-Voice Type is ready for broader testing.
+Voice Type is now Tiro.
 
-- A new app icon and a polished light and dark appearance.
-- More reliable voice typing, media controls, and transcript pasting.
+- A shorter name and a simpler project page.
+- The same shortcuts, settings, history, and signed updates.
 ]]></description>
-            <enclosure url="https://github.com/Salazar-Prime/voice-type/releases/download/v0.5.0-beta.1/Voice-Type-0.5.0-beta.1.zip" length="2813524" type="application/octet-stream" sparkle:edSignature="MBA/9Q8DRs4QsgK+zn7BoJiIusG7Q7U/+G9HCZvbQLt6VN5N4DWI5orRRr33Re1DzkDSNrVVvjALVptSesyiBQ=="/>
-        </item>
-        <item>
-            <title>0.4.4</title>
-            <pubDate>Mon, 10 Aug 2026 21:34:28 -0400</pubDate>
-            <link>https://github.com/Salazar-Prime/voice-type</link>
-            <sparkle:version>9</sparkle:version>
-            <sparkle:shortVersionString>0.4.4</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/Salazar-Prime/voice-type/releases/download/v0.4.4/Voice-Type-0.4.4.zip" length="1396317" type="application/octet-stream" sparkle:edSignature="TlQ+mY8KRrAg79oU7/nTxVNhHTFm2Z1gJpLiyRCeS6El72QVWz4qxwxRNRVIjBVS+f5lLxCxIxWsYs1xrSNuDg=="/>
-        </item>
-        <item>
-            <title>0.4.3</title>
-            <pubDate>Mon, 10 Aug 2026 21:15:43 -0400</pubDate>
-            <link>https://github.com/Salazar-Prime/voice-type</link>
-            <sparkle:version>8</sparkle:version>
-            <sparkle:shortVersionString>0.4.3</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/Salazar-Prime/voice-type/releases/download/v0.4.3/Voice-Type-0.4.3.zip" length="1389090" type="application/octet-stream" sparkle:edSignature="qoaAgt2AcVvQv9d4uVyrr5otfpml99PzL6emrBUT0fDdUzeiHJ2AqYZPvt+fQD87ZFoaFCvVc6tjuMq1Di53AQ=="/>
-        </item>
-        <item>
-            <title>0.4.2</title>
-            <pubDate>Mon, 10 Aug 2026 21:06:14 -0400</pubDate>
-            <link>https://github.com/Salazar-Prime/voice-type</link>
-            <sparkle:version>7</sparkle:version>
-            <sparkle:shortVersionString>0.4.2</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/Salazar-Prime/voice-type/releases/download/v0.4.2/Voice-Type-0.4.2.zip" length="1376049" type="application/octet-stream" sparkle:edSignature="O3mcS4WWJY8zmOUQwlNK2v2bZFLuO4v7TmpD8GtDSOeMIRg/M2iQ3naaFNnroJay725FVWH28Pygs6j6sPaqAg=="/>
-        </item>
-        <item>
-            <title>0.4.1</title>
-            <pubDate>Mon, 10 Aug 2026 20:56:15 -0400</pubDate>
-            <link>https://github.com/Salazar-Prime/voice-type</link>
-            <sparkle:version>6</sparkle:version>
-            <sparkle:shortVersionString>0.4.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/Salazar-Prime/voice-type/releases/download/v0.4.1/Voice-Type-0.4.1.zip" length="1375498" type="application/octet-stream" sparkle:edSignature="U/Fj7gDH75wqnxcLD7uVHM+XMCs11NVvsDXtrOJIodZA2/phQEpDtmTJ6l9dW3vOj0ZzxBY22ZNopvk6nWxhBA=="/>
+            <enclosure url="https://github.com/Salazar-Prime/tiro/releases/download/v0.5.0-beta.2/Tiro-0.5.0-beta.2.zip" length="2808743" type="application/octet-stream" sparkle:edSignature="SikLxA/X4/zaEouG46EJ++YK9u0fbp3F21Vc0xttfNNAF4liD1xzrIoyRs259Zu637B22zdcDy3DGnOAg9//Bg=="/>
         </item>
     </channel>
 </rss>

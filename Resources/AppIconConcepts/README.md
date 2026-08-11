@@ -1,4 +1,4 @@
-# Voice Type icon concepts
+# Tiro icon concepts
 
 These are retained 1024×1024 concept explorations. The production icon now comes from `../Apple glass icon design/Voxpen App Icon.dc.html`; its extracted vector master is `../AppIcon.svg`, and `../AppIcon.icns` is generated from that master.
 
