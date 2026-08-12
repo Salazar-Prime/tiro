@@ -4,7 +4,12 @@
 
 <h1 align="center">Tiro</h1>
 
-<p align="center">Hold a shortcut, speak, and put the transcript at your cursor.</p>
+<p align="center">
+  <img
+    src="https://readme-typing-svg.demolab.com?font=SF+Mono&amp;size=20&amp;duration=2800&amp;pause=900&amp;color=2F6B5D&amp;center=true&amp;vCenter=true&amp;width=720&amp;lines=Tiro+can+transcribe+for+you%E2%80%94wherever+you+type.;Hold+the+shortcut.+Speak.+Release.+Keep+typing."
+    alt="Tiro can transcribe for you—wherever you type."
+  >
+</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/status-public_beta-2f6b5d" alt="Public beta">
@@ -15,7 +20,13 @@
 
 <p align="center"><a href="https://github.com/Salazar-Prime/tiro/releases">Download the public beta</a></p>
 
-Tiro is a small native macOS menu-bar app for voice typing. It pauses active media, mutes system output while recording, sends the finished recording to OpenAI, and inserts the transcript into the focused text field.
+Tiro is a native macOS menu-bar app that turns speech into text wherever your cursor is active. It briefly pauses active media and mutes system output while recording, transcribes the finished audio with OpenAI, then inserts the result into the focused app.
+
+## See it in action
+
+<p align="center">
+  <img src="docs/demos/voice-typing/voice-typing.gif" alt="Tiro transcribing speech directly into Sublime Text">
+</p>
 
 ## Shortcuts
 
@@ -32,12 +43,19 @@ You need macOS 14 or newer, an OpenAI API key with API billing enabled, and Micr
 
 Public beta builds are Sparkle-signed but not yet Apple-notarized. On first launch, macOS may require you to Control-click Tiro and choose **Open**.
 
+When installing from the DMG, drag `Tiro.app` to the Applications shortcut, then launch it from `/Applications`.
+
+## Updates
+
+Tiro uses Sparkle 2 for signed updates. It checks the GitHub-hosted update feed automatically, and you can run a manual check from **Check for Updates…** in the menu-bar menu.
+
 ## Build
 
 ```sh
 git clone https://github.com/Salazar-Prime/tiro.git
 cd tiro
 ./Scripts/build-app.sh
+./Scripts/create-dmg.sh
 open "dist/Tiro.app"
 ```
 
@@ -46,9 +64,18 @@ Move `Tiro.app` to `/Applications` before granting permissions so macOS can keep
 ## Privacy
 
 - Recording starts only when you use the shortcut.
-- Temporary audio is deleted after transcription.
-- Transcript history stays on this Mac and can be cleared at any time.
+- Tiro sends the recording and any optional transcription instructions directly to OpenAI's `/v1/audio/transcriptions` endpoint using your API key. The current build uses `gpt-4o-mini-transcribe`, not the `whisper-1` model.
+- OpenAI handles these requests under its API data controls, which differ from ChatGPT's consumer data controls. Its current policy lists the transcription endpoint as not used for training, with no abuse-monitoring or application-state retention. See [OpenAI's API data controls](https://developers.openai.com/api/docs/guides/your-data#default-usage-policies-by-endpoint).
+- Temporary audio on your Mac is deleted after the transcription request completes.
+- Tiro does not send analytics, telemetry, crash reports, or application logs. Limited operational diagnostics stay in macOS's local unified log and do not include audio or transcript content.
+- Transcript history stays on this Mac and can be searched, deleted, or cleared at any time.
 - Any temporary pasteboard content is restored and marked to keep it out of compatible clipboard-history apps.
+- Sparkle contacts Tiro's GitHub-hosted update feed to check for new releases.
+
+## Feature checklist
+
+- [x] Paste the last transcript again with <kbd>Control</kbd> + <kbd>Command</kbd> + <kbd>V</kbd>
+- [x] Browse, search, copy, delete, and clear local transcript history
 
 ## Development
 

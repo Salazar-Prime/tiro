@@ -53,11 +53,25 @@ struct TranscriptionClient {
         }
 
         let result = try JSONDecoder().decode(TranscriptionResponse.self, from: data)
-        let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return try Self.validatedTranscript(result.text, prompt: trimmedPrompt)
+    }
+
+    static func validatedTranscript(_ rawText: String, prompt: String) throws -> String {
+        let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
             throw TranscriptionError.emptyTranscript
         }
+
+        let normalizedPrompt = normalizeWhitespace(prompt)
+        guard normalizedPrompt.isEmpty || normalizeWhitespace(text) != normalizedPrompt else {
+            throw TranscriptionError.emptyTranscript
+        }
+
         return text
+    }
+
+    private static func normalizeWhitespace(_ text: String) -> String {
+        text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 }
 
@@ -116,7 +130,7 @@ private struct APIErrorEnvelope: Decodable {
     let error: APIError
 }
 
-enum TranscriptionError: LocalizedError {
+enum TranscriptionError: LocalizedError, Equatable {
     case invalidResponse
     case recordingTooLarge
     case emptyTranscript

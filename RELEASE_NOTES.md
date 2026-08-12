@@ -1,6 +1,7 @@
-# Tiro public beta 2
+# Tiro public beta 3
 
-Voice Type is now Tiro.
+This beta makes voice capture more forgiving and adds a simpler installer.
 
-- A shorter name and a simpler project page.
-- The same shortcuts, settings, history, and signed updates.
+- Accidental short recordings are ignored instead of being sent for transcription.
+- Tiro keeps its app icon when it temporarily replaces the Dock icon.
+- A DMG is available for drag-to-Applications installation.

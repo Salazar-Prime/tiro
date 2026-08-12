@@ -11,6 +11,8 @@
     <key>CFBundleIdentifier</key>
     <string>com.salazarprime.VoiceType</string>
     <key>CFBundleIconFile</key>
+    <string>AppIcon.icns</string>
+    <key>CFBundleIconName</key>
     <string>AppIcon</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
@@ -19,9 +21,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.5.0-beta.2</string>
+    <string>0.5.0-beta.3</string>
     <key>CFBundleVersion</key>
-    <string>11</string>
+    <string>13</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSUIElement</key>

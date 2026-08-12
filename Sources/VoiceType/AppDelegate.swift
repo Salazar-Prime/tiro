@@ -3,7 +3,7 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, @preconcurrency SPUStandardUserDriverDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @preconcurrency SPUStandardUserDriverDelegate {
     private let appModel = AppModel()
     private let historyStore = TranscriptHistoryStore()
     private let overlayController = OverlayWindowController()
@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, @preconcurrency SPUSta
     var supportsGentleScheduledUpdateReminders: Bool { true }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        configureApplicationIcon()
         NSApp.setActivationPolicy(.accessory)
 
         let voiceController = VoiceTypingController(
@@ -60,6 +61,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, @preconcurrency SPUSta
         }
     }
 
+    private func configureApplicationIcon() {
+        guard let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+              let icon = NSImage(contentsOf: iconURL) else { return }
+        NSApp.applicationIconImage = icon
+    }
+
     func applicationDidBecomeActive(_ notification: Notification) {
         appModel.refreshPermissions()
     }
@@ -80,7 +87,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, @preconcurrency SPUSta
     private func openSettings() {
         if settingsWindowController == nil {
             settingsWindowController = SettingsWindowController(model: appModel)
+            settingsWindowController?.window?.delegate = self
         }
+        NSApp.setActivationPolicy(.regular)
         settingsWindowController?.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
         settingsWindowController?.window?.makeKeyAndOrderFront(nil)
@@ -89,10 +98,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate, @preconcurrency SPUSta
     private func openHistory() {
         if historyWindowController == nil {
             historyWindowController = HistoryWindowController(store: historyStore)
+            historyWindowController?.window?.delegate = self
         }
+        NSApp.setActivationPolicy(.regular)
         historyWindowController?.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
         historyWindowController?.window?.makeKeyAndOrderFront(nil)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard let closingWindow = notification.object as? NSWindow else { return }
+        let utilityWindows = [
+            settingsWindowController?.window,
+            historyWindowController?.window
+        ].compactMap { $0 }
+
+        guard utilityWindows.contains(where: { $0 === closingWindow }) else { return }
+
+        let hasAnotherOpenWindow = utilityWindows.contains {
+            $0 !== closingWindow && ($0.isVisible || $0.isMiniaturized)
+        }
+        if !hasAnotherOpenWindow {
+            NSApp.setActivationPolicy(.accessory)
+        }
+    }
+
+    func windowDidBecomeKey(_ notification: Notification) {
+        keepDockIconVisible(for: notification)
+    }
+
+    func windowDidMiniaturize(_ notification: Notification) {
+        keepDockIconVisible(for: notification)
+    }
+
+    func windowDidDeminiaturize(_ notification: Notification) {
+        keepDockIconVisible(for: notification)
+    }
+
+    private func keepDockIconVisible(for notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        let isUtilityWindow = settingsWindowController?.window === window
+            || historyWindowController?.window === window
+        guard isUtilityWindow else { return }
+        NSApp.setActivationPolicy(.regular)
     }
 
     private func configureStatusItem() {

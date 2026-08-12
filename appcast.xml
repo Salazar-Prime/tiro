@@ -3,21 +3,22 @@
     <channel>
         <title>Tiro</title>
         <item>
-            <title>0.5.0-beta.2</title>
-            <pubDate>Tue, 11 Aug 2026 16:55:58 -0400</pubDate>
+            <title>0.5.0-beta.3</title>
+            <pubDate>Wed, 12 Aug 2026 11:20:18 -0400</pubDate>
             <link>https://github.com/Salazar-Prime/tiro</link>
-            <sparkle:version>11</sparkle:version>
-            <sparkle:shortVersionString>0.5.0-beta.2</sparkle:shortVersionString>
+            <sparkle:version>13</sparkle:version>
+            <sparkle:shortVersionString>0.5.0-beta.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Tiro public beta 2
+            <description sparkle:format="markdown"><![CDATA[# Tiro public beta 3
 
-Voice Type is now Tiro.
+This beta makes voice capture more forgiving and adds a simpler installer.
 
-- A shorter name and a simpler project page.
-- The same shortcuts, settings, history, and signed updates.
+- Accidental short recordings are ignored instead of being sent for transcription.
+- Tiro keeps its app icon when it temporarily replaces the Dock icon.
+- A DMG is available for drag-to-Applications installation.
 ]]></description>
-            <enclosure url="https://github.com/Salazar-Prime/tiro/releases/download/v0.5.0-beta.2/Tiro-0.5.0-beta.2.zip" length="2808743" type="application/octet-stream" sparkle:edSignature="SikLxA/X4/zaEouG46EJ++YK9u0fbp3F21Vc0xttfNNAF4liD1xzrIoyRs259Zu637B22zdcDy3DGnOAg9//Bg=="/>
+            <enclosure url="https://github.com/Salazar-Prime/tiro/releases/download/v0.5.0-beta.3/Tiro-0.5.0-beta.3.zip" length="2813962" type="application/octet-stream" sparkle:edSignature="3UhaUq9gN8ovsKtLAa2oKHVKQRIuDYjMUc5Qoiob1AGzzprfMnkG1cdhyiIS774BVnQnZ+Mgw7S5L1Y7iIIaDQ=="/>
         </item>
     </channel>
 </rss>

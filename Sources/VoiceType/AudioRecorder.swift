@@ -11,6 +11,10 @@ final class AudioRecorder {
         recorder?.isRecording == true
     }
 
+    var recordingDuration: TimeInterval {
+        recorder?.currentTime ?? 0
+    }
+
     static func requestPermission() async -> Bool {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized:

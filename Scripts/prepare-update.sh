@@ -15,6 +15,7 @@ VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO_
 BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIST")
 DISPLAY_VERSION=${VERSION/-beta./ Public Beta }
 ARCHIVE_NAME="Tiro-$VERSION.zip"
+DMG_NAME="Tiro-$VERSION.dmg"
 NOTES_NAME="Tiro-$VERSION.md"
 TAG="v$VERSION"
 
@@ -50,9 +51,14 @@ fi
 
 cp "$PUBLISH_DIR/appcast.xml" "$PROJECT_DIR/appcast.xml"
 
+# Sparkle updates use the ZIP above. Build the DMG afterwards so it remains a
+# separate first-time/manual-install asset and is not considered for the feed.
+"$SCRIPT_DIR/create-dmg.sh" "$APP_BUNDLE" "$PUBLISH_DIR/$DMG_NAME"
+
 echo "Prepared build $BUILD ($VERSION):"
 echo "  $PUBLISH_DIR/$ARCHIVE_NAME"
+echo "  $PUBLISH_DIR/$DMG_NAME"
 echo "  $PROJECT_DIR/appcast.xml"
 echo
 echo "Publish after committing and pushing the source and appcast:"
-echo "  gh release create $TAG '$PUBLISH_DIR/$ARCHIVE_NAME' --target '$RELEASE_BRANCH' --title 'Tiro $DISPLAY_VERSION' --prerelease --notes-file '$RELEASE_NOTES'"
+echo "  gh release create $TAG '$PUBLISH_DIR/$ARCHIVE_NAME' '$PUBLISH_DIR/$DMG_NAME' --target '$RELEASE_BRANCH' --title 'Tiro $DISPLAY_VERSION' --prerelease --notes-file '$RELEASE_NOTES'"

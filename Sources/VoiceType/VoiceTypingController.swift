@@ -2,6 +2,8 @@ import Foundation
 
 @MainActor
 final class VoiceTypingController {
+    private static let minimumRecordingDuration: TimeInterval = 0.5
+
     private let appModel: AppModel
     private let overlay: OverlayWindowController
     private let recorder = AudioRecorder()
@@ -133,10 +135,17 @@ final class VoiceTypingController {
     private func finishRecording() {
         pendingActivation = nil
         recordingIsLocked = false
+        let recordingDuration = recorder.recordingDuration
         let fileURL = recorder.stop()
         outputMuter.restore()
         guard let fileURL else {
             overlay.hide()
+            return
+        }
+        guard recordingDuration >= Self.minimumRecordingDuration else {
+            try? FileManager.default.removeItem(at: fileURL)
+            overlay.show(.error("Recording too short"))
+            overlay.hide(after: 1.4)
             return
         }
         guard let apiKey = appModel.currentAPIKey() else {
