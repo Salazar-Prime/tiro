@@ -8,12 +8,14 @@ final class VoiceTypingController {
     private let overlay: OverlayWindowController
     private let recorder = AudioRecorder()
     private let client = TranscriptionClient()
+    private let offlineClient = OfflineTranscriptionClient()
     private let historyStore: TranscriptHistoryStore
     private let outputMuter = SystemOutputMuter()
 
     private var pendingActivation: UUID?
     private var transcriptionTask: Task<Void, Never>?
     private var recordingIsLocked = false
+    private var recordingEngine: TranscriptionEngine?
 
     var onNeedsSettings: (() -> Void)?
 
@@ -75,6 +77,7 @@ final class VoiceTypingController {
     func cancelRecording() {
         pendingActivation = nil
         recordingIsLocked = false
+        recordingEngine = nil
         recorder.cancel()
         outputMuter.restore()
         transcriptionTask?.cancel()
@@ -88,14 +91,26 @@ final class VoiceTypingController {
             overlay.hide(after: 1.2)
             return
         }
-        guard appModel.hasAPIKey, appModel.currentAPIKey() != nil else {
-            overlay.show(.error("Add an API key"))
-            overlay.hide(after: 1.5)
-            onNeedsSettings?()
-            return
+        let engine = appModel.transcriptionEngine
+        switch engine {
+        case .cloud:
+            guard appModel.hasAPIKey, appModel.currentAPIKey() != nil else {
+                overlay.show(.error("Add an API key"))
+                overlay.hide(after: 1.5)
+                onNeedsSettings?()
+                return
+            }
+        case .offline:
+            guard appModel.offlineModel.isReady else {
+                overlay.show(.error("Download offline model"))
+                overlay.hide(after: 1.7)
+                onNeedsSettings?()
+                return
+            }
         }
 
         recordingIsLocked = false
+        recordingEngine = engine
         let activation = UUID()
         pendingActivation = activation
         overlay.show(.preparing)
@@ -119,12 +134,15 @@ final class VoiceTypingController {
                     return
                 }
                 pendingActivation = nil
-                try recorder.start { [weak self] level in
+                try recorder.start(
+                    format: engine == .offline ? .whisperPCM : .compressed
+                ) { [weak self] level in
                     guard let self else { return }
                     self.overlay.show(.listening(level: level, locked: self.recordingIsLocked))
                 }
                 overlay.show(.listening(level: 0.2, locked: recordingIsLocked))
             } catch {
+                recordingEngine = nil
                 outputMuter.restore()
                 overlay.show(.error("Microphone unavailable"))
                 overlay.hide(after: 1.6)
@@ -135,6 +153,8 @@ final class VoiceTypingController {
     private func finishRecording() {
         pendingActivation = nil
         recordingIsLocked = false
+        let engine = recordingEngine ?? appModel.transcriptionEngine
+        recordingEngine = nil
         let recordingDuration = recorder.recordingDuration
         let fileURL = recorder.stop()
         outputMuter.restore()
@@ -148,14 +168,6 @@ final class VoiceTypingController {
             overlay.hide(after: 1.4)
             return
         }
-        guard let apiKey = appModel.currentAPIKey() else {
-            try? FileManager.default.removeItem(at: fileURL)
-            overlay.show(.error("Add an API key"))
-            overlay.hide(after: 1.5)
-            onNeedsSettings?()
-            return
-        }
-
         overlay.show(.transcribing)
         transcriptionTask = Task { [weak self] in
             guard let self else { return }
@@ -165,11 +177,24 @@ final class VoiceTypingController {
             }
 
             do {
-                let text = try await client.transcribe(
-                    fileURL: fileURL,
-                    apiKey: apiKey,
-                    prompt: appModel.transcriptionInstructions
-                )
+                let text: String
+                switch engine {
+                case .cloud:
+                    guard let apiKey = appModel.currentAPIKey() else {
+                        throw VoiceTypingError.apiKeyMissing
+                    }
+                    text = try await client.transcribe(
+                        fileURL: fileURL,
+                        apiKey: apiKey,
+                        prompt: appModel.prompt(for: engine)
+                    )
+                case .offline:
+                    text = try await offlineClient.transcribe(
+                        fileURL: fileURL,
+                        modelURL: appModel.offlineModel.modelURL,
+                        prompt: appModel.prompt(for: engine)
+                    )
+                }
                 guard !Task.isCancelled else { return }
                 historyStore.add(text)
                 switch await TextInsertionService.insert(text) {
@@ -193,5 +218,13 @@ final class VoiceTypingController {
                 overlay.hide(after: 2.4)
             }
         }
+    }
+}
+
+private enum VoiceTypingError: LocalizedError {
+    case apiKeyMissing
+
+    var errorDescription: String? {
+        "Add an API key in Settings."
     }
 }

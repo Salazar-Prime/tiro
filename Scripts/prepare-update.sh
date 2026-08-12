@@ -9,7 +9,8 @@ PUBLISH_DIR="$PROJECT_DIR/dist/publish"
 INFO_PLIST="$PROJECT_DIR/Resources/Info.plist"
 SPARKLE_TOOLS="$PROJECT_DIR/.build/artifacts/sparkle/Sparkle/bin"
 RELEASE_NOTES="$PROJECT_DIR/RELEASE_NOTES.md"
-RELEASE_BRANCH=${TIRO_RELEASE_BRANCH:-${VOICE_TYPE_RELEASE_BRANCH:-beta}}
+PREPARE_BRANCH=${TIRO_PREPARE_BRANCH:-${VOICE_TYPE_PREPARE_BRANCH:-beta}}
+PUBLISH_BRANCH=${TIRO_PUBLISH_BRANCH:-${VOICE_TYPE_PUBLISH_BRANCH:-main}}
 
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO_PLIST")
 BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIST")
@@ -20,8 +21,15 @@ NOTES_NAME="Tiro-$VERSION.md"
 TAG="v$VERSION"
 
 CURRENT_BRANCH=$(git -C "$PROJECT_DIR" branch --show-current)
-if [[ "$CURRENT_BRANCH" != "$RELEASE_BRANCH" ]]; then
-    echo "Updates must be prepared from the $RELEASE_BRANCH branch (currently $CURRENT_BRANCH)." >&2
+if [[ "$CURRENT_BRANCH" != "$PREPARE_BRANCH" ]]; then
+    echo "Updates must be prepared from the local $PREPARE_BRANCH branch (currently $CURRENT_BRANCH)." >&2
+    exit 1
+fi
+
+FEED_URL=$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$INFO_PLIST")
+EXPECTED_FEED_URL="https://raw.githubusercontent.com/Salazar-Prime/tiro/$PUBLISH_BRANCH/appcast.xml"
+if [[ "$FEED_URL" != "$EXPECTED_FEED_URL" ]]; then
+    echo "SUFeedURL must use the published $PUBLISH_BRANCH branch: $EXPECTED_FEED_URL" >&2
     exit 1
 fi
 
@@ -60,5 +68,5 @@ echo "  $PUBLISH_DIR/$ARCHIVE_NAME"
 echo "  $PUBLISH_DIR/$DMG_NAME"
 echo "  $PROJECT_DIR/appcast.xml"
 echo
-echo "Publish after committing and pushing the source and appcast:"
-echo "  gh release create $TAG '$PUBLISH_DIR/$ARCHIVE_NAME' '$PUBLISH_DIR/$DMG_NAME' --target '$RELEASE_BRANCH' --title 'Tiro $DISPLAY_VERSION' --prerelease --notes-file '$RELEASE_NOTES'"
+echo "After committing on $PREPARE_BRANCH, merge it into $PUBLISH_BRANCH and push only $PUBLISH_BRANCH. Then publish:"
+echo "  gh release create $TAG '$PUBLISH_DIR/$ARCHIVE_NAME' '$PUBLISH_DIR/$DMG_NAME' --target '$PUBLISH_BRANCH' --title 'Tiro $DISPLAY_VERSION' --prerelease --notes-file '$RELEASE_NOTES'"

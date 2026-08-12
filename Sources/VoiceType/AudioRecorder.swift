@@ -28,19 +28,16 @@ final class AudioRecorder {
         }
     }
 
-    func start(onLevel: @escaping @MainActor @Sendable (Float) -> Void) throws {
+    func start(
+        format: AudioRecordingFormat = .compressed,
+        onLevel: @escaping @MainActor @Sendable (Float) -> Void
+    ) throws {
         guard !isRecording else { return }
 
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("VoiceType-\(UUID().uuidString)")
-            .appendingPathExtension("m4a")
-        let settings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatMPEG4AAC,
-            AVSampleRateKey: 44_100,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderBitRateKey: 96_000,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-        ]
+            .appendingPathComponent("Tiro-\(UUID().uuidString)")
+            .appendingPathExtension(format.fileExtension)
+        let settings = format.settings
 
         let recorder = try AVAudioRecorder(url: url, settings: settings)
         recorder.isMeteringEnabled = true
@@ -75,6 +72,41 @@ final class AudioRecorder {
         let url = stop()
         if let url {
             try? FileManager.default.removeItem(at: url)
+        }
+    }
+}
+
+enum AudioRecordingFormat {
+    case compressed
+    case whisperPCM
+
+    var fileExtension: String {
+        switch self {
+        case .compressed: "m4a"
+        case .whisperPCM: "wav"
+        }
+    }
+
+    var settings: [String: Any] {
+        switch self {
+        case .compressed:
+            [
+                AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 44_100,
+                AVNumberOfChannelsKey: 1,
+                AVEncoderBitRateKey: 96_000,
+                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+            ]
+        case .whisperPCM:
+            [
+                AVFormatIDKey: kAudioFormatLinearPCM,
+                AVSampleRateKey: 16_000,
+                AVNumberOfChannelsKey: 1,
+                AVLinearPCMBitDepthKey: 16,
+                AVLinearPCMIsFloatKey: false,
+                AVLinearPCMIsBigEndianKey: false,
+                AVLinearPCMIsNonInterleaved: false
+            ]
         }
     }
 }

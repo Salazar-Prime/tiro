@@ -14,7 +14,15 @@ struct SettingsView: View {
                     header
                     shortcutStrip
                     setupSection
-                    apiKeySection
+                    engineSection
+                    if model.transcriptionEngine == .cloud {
+                        apiKeySection
+                    } else {
+                        OfflineModelSection(
+                            manager: model.offlineModel,
+                            palette: palette
+                        )
+                    }
                     transcriptionSection
                     privacyNote
                 }
@@ -24,6 +32,38 @@ struct SettingsView: View {
             }
         }
         .onAppear { model.refreshPermissions() }
+    }
+
+    private var engineSection: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            HStack {
+                SectionLabel(text: "TRANSCRIPTION ENGINE", palette: palette)
+                Spacer()
+                Text("ENGLISH")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundStyle(palette.ink.opacity(0.52))
+            }
+
+            HStack(spacing: 8) {
+                ForEach(TranscriptionEngine.allCases) { engine in
+                    EngineChoice(
+                        engine: engine,
+                        isSelected: model.transcriptionEngine == engine,
+                        palette: palette
+                    ) {
+                        withAnimation(.easeOut(duration: 0.16)) {
+                            model.transcriptionEngine = engine
+                        }
+                    }
+                }
+            }
+            .padding(6)
+            .background(palette.surface, in: RoundedRectangle(cornerRadius: 16))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(palette.stroke, lineWidth: 1)
+            }
+        }
     }
 
     private var header: some View {
@@ -101,7 +141,7 @@ struct SettingsView: View {
             HStack {
                 SectionLabel(text: "OPENAI", palette: palette)
                 Spacer()
-                Text("GPT-4O MINI TRANSCRIBE")
+                Text("GPT-4O MINI TRANSCRIBE · CLOUD")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundStyle(palette.ink.opacity(0.52))
             }
@@ -166,29 +206,48 @@ struct SettingsView: View {
             HStack {
                 SectionLabel(text: "TRANSCRIPTION", palette: palette)
                 Spacer()
-                Text("ENGLISH")
+                Text(model.transcriptionEngine == .cloud ? "CLOUD PROMPT" : "INITIAL PROMPT")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundStyle(palette.ink.opacity(0.52))
             }
 
             VStack(alignment: .leading, spacing: 11) {
-                Text("Instructions")
+                Text(
+                    model.transcriptionEngine == .cloud
+                        ? "Instructions"
+                        : "Vocabulary and context (optional)"
+                )
                     .font(.system(size: 12.5, weight: .semibold, design: .rounded))
 
-                TextEditor(text: $model.transcriptionInstructions)
-                    .font(.system(size: 12.5, design: .rounded))
-                    .scrollContentBackground(.hidden)
-                    .padding(10)
-                    .frame(minHeight: 98)
-                    .background(palette.field, in: RoundedRectangle(cornerRadius: 10))
+                ZStack(alignment: .topLeading) {
+                    TextEditor(text: selectedPrompt)
+                        .font(.system(size: 12.5, design: .rounded))
+                        .scrollContentBackground(.hidden)
+                        .padding(10)
+                        .frame(minHeight: 98)
+                        .background(palette.field, in: RoundedRectangle(cornerRadius: 10))
+                    if model.transcriptionEngine == .offline,
+                       model.offlineInitialPrompt.isEmpty {
+                        Text("Names, acronyms, or domain-specific terms")
+                            .font(.system(size: 12.5, design: .rounded))
+                            .foregroundStyle(palette.ink.opacity(0.38))
+                            .padding(.horizontal, 15)
+                            .padding(.vertical, 17)
+                            .allowsHitTesting(false)
+                    }
+                }
 
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Saved automatically and used on the next recording.")
+                    Text(
+                        model.transcriptionEngine == .cloud
+                            ? "Saved automatically and used on the next recording."
+                            : "Helps Whisper recognize terms. Offline mode does not rewrite or post-process text."
+                    )
                         .font(.system(size: 10.5))
                         .foregroundStyle(palette.ink.opacity(0.60))
                     Spacer()
                     Button("Reset") {
-                        model.resetTranscriptionInstructions()
+                        model.resetPromptForSelectedEngine()
                     }
                     .buttonStyle(.plain)
                     .font(.system(size: 10.5, weight: .semibold))
@@ -204,11 +263,171 @@ struct SettingsView: View {
         }
     }
 
+    private var selectedPrompt: Binding<String> {
+        Binding(
+            get: {
+                model.transcriptionEngine == .cloud
+                    ? model.transcriptionInstructions
+                    : model.offlineInitialPrompt
+            },
+            set: { value in
+                if model.transcriptionEngine == .cloud {
+                    model.transcriptionInstructions = value
+                } else {
+                    model.offlineInitialPrompt = value
+                }
+            }
+        )
+    }
+
     private var privacyNote: some View {
-        Text("System output is muted only while Tiro records and restored when recording stops. Audio is then sent to OpenAI and deleted after transcription. Transcript history is saved on this Mac and can be cleared from Tiro’s menu-bar history window.")
+        Text(
+            model.transcriptionEngine == .offline
+                ? "System output is muted only while Tiro records and restored when recording stops. Offline audio and transcription stay on this Mac. Temporary audio is deleted after transcription; transcript history remains until you delete it."
+                : "System output is muted only while Tiro records and restored when recording stops. Audio is then sent to OpenAI and deleted after transcription. Transcript history is saved on this Mac and can be cleared from Tiro’s menu-bar history window."
+        )
             .font(.system(size: 11.5, weight: .regular))
             .foregroundStyle(palette.ink.opacity(0.64))
             .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+private struct EngineChoice: View {
+    let engine: TranscriptionEngine
+    let isSelected: Bool
+    let palette: VoiceTypePalette
+    let action: () -> Void
+
+    private var tint: Color {
+        engine == .cloud ? palette.coral : palette.aqua
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: engine.icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 30, height: 30)
+                    .background(tint.opacity(0.14), in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(engine.title)
+                        .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(palette.ink)
+                    Text(engine.detail.uppercased())
+                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                        .tracking(0.5)
+                        .foregroundStyle(palette.ink.opacity(0.52))
+                }
+                Spacer(minLength: 0)
+                Circle()
+                    .fill(isSelected ? tint : palette.stroke)
+                    .frame(width: 7, height: 7)
+            }
+            .padding(.horizontal, 11)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(
+                isSelected ? tint.opacity(0.11) : palette.field.opacity(0.58),
+                in: RoundedRectangle(cornerRadius: 11)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 11)
+                    .strokeBorder(isSelected ? tint.opacity(0.42) : .clear, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct OfflineModelSection: View {
+    @ObservedObject var manager: OfflineModelManager
+    let palette: VoiceTypePalette
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            HStack {
+                SectionLabel(text: "ON-DEVICE MODEL", palette: palette)
+                Spacer()
+                Text("WHISPER.CPP 1.9.2")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundStyle(palette.ink.opacity(0.52))
+            }
+
+            VStack(alignment: .leading, spacing: 13) {
+                HStack(spacing: 12) {
+                    Image(systemName: "waveform.badge.magnifyingglass")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(palette.aqua)
+                        .frame(width: 38, height: 38)
+                        .background(palette.aqua.opacity(0.14), in: Circle())
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(OfflineModelManager.modelName)
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        Text("English · balanced accuracy · \(OfflineModelManager.downloadSize)")
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(palette.ink.opacity(0.60))
+                    }
+                    Spacer()
+                    stateControl
+                }
+
+                Divider()
+
+                HStack(alignment: .firstTextBaseline) {
+                    Label("Audio never leaves this Mac", systemImage: "lock.shield.fill")
+                        .foregroundStyle(palette.aqua)
+                    Spacer()
+                    if manager.isReady {
+                        Button("Remove model", role: .destructive) {
+                            manager.removeModel()
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(palette.coral)
+                    }
+                }
+                .font(.system(size: 10.5, weight: .medium))
+
+                if case let .failed(message) = manager.state {
+                    Text(message)
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(palette.coral)
+                }
+            }
+            .padding(16)
+            .background(palette.surface, in: RoundedRectangle(cornerRadius: 16))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(palette.stroke, lineWidth: 1)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var stateControl: some View {
+        switch manager.state {
+        case .ready:
+            Label("Ready", systemImage: "checkmark")
+                .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                .foregroundStyle(palette.aqua)
+        case .downloading:
+            HStack(spacing: 7) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("DOWNLOADING")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundStyle(palette.ink.opacity(0.60))
+            }
+        case .missing, .failed:
+            Button(manager.state == .missing ? "Download" : "Retry") {
+                manager.download()
+            }
+            .buttonStyle(
+                SignalButtonStyle(
+                    color: palette.ink,
+                    foregroundColor: palette.canvas
+                )
+            )
+        }
     }
 }
 

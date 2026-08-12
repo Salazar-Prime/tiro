@@ -54,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
         configureStatusItem()
         appModel.refreshPermissions()
 
-        if !appModel.hasAPIKey {
+        if !appModel.isSelectedEngineReady {
             openSettings()
         } else if !appModel.isAccessibilityTrusted {
             appModel.requestAccessibility()

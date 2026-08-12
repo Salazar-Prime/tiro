@@ -1,7 +1,7 @@
-# Tiro public beta 3
+# Tiro public beta 4
 
-This beta makes voice capture more forgiving and adds a simpler installer.
+This beta adds private, on-device transcription.
 
-- Accidental short recordings are ignored instead of being sent for transcription.
-- Tiro keeps its app icon when it temporarily replaces the Dock icon.
-- A DMG is available for drag-to-Applications installation.
+- Choose OpenAI or On-device from Settings.
+- Download the English Whisper model once, then transcribe without uploading audio or using an API key.
+- Add optional vocabulary and context to help the offline model recognize names and specialist terms.

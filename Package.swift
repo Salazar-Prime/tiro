@@ -18,7 +18,8 @@ let package = Package(
             name: "VoiceType",
             dependencies: [
                 .product(name: "Sparkle", package: "Sparkle"),
-                "MediaControlBridge"
+                "MediaControlBridge",
+                "whisper"
             ],
             path: "Sources/VoiceType",
             linkerSettings: [
@@ -35,6 +36,11 @@ let package = Package(
             cSettings: [
                 .unsafeFlags(["-fobjc-arc"])
             ]
+        ),
+        .binaryTarget(
+            name: "whisper",
+            url: "https://github.com/ggml-org/whisper.cpp/releases/download/v1.9.2/whisper-v1.9.2-xcframework.zip",
+            checksum: "af74fed13ea7f2d5ca2a39d9f58ec177713fafd7cab63aef4e27b79f3ceca80b"
         ),
         .testTarget(
             name: "VoiceTypeTests",

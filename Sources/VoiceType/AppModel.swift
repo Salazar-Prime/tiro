@@ -10,12 +10,22 @@ final class AppModel: ObservableObject {
     """
 
     private static let transcriptionInstructionsKey = "transcriptionInstructions"
+    private static let transcriptionEngineKey = "transcriptionEngine"
+    private static let offlineInitialPromptKey = "offlineInitialPrompt"
 
     @Published private(set) var hasAPIKey = false
     @Published private(set) var microphoneStatus: PermissionStatus = .unknown
     @Published private(set) var accessibilityStatus: PermissionStatus = .unknown
     @Published var keyEntry = ""
     @Published var keyMessage: String?
+    @Published var transcriptionEngine: TranscriptionEngine {
+        didSet {
+            UserDefaults.standard.set(
+                transcriptionEngine.rawValue,
+                forKey: Self.transcriptionEngineKey
+            )
+        }
+    }
     @Published var transcriptionInstructions: String {
         didSet {
             UserDefaults.standard.set(
@@ -24,17 +34,42 @@ final class AppModel: ObservableObject {
             )
         }
     }
+    @Published var offlineInitialPrompt: String {
+        didSet {
+            UserDefaults.standard.set(
+                offlineInitialPrompt,
+                forKey: Self.offlineInitialPromptKey
+            )
+        }
+    }
 
     var onPreviewOverlay: (() -> Void)?
+    let offlineModel: OfflineModelManager
 
     var isAccessibilityTrusted: Bool {
         accessibilityStatus == .granted
     }
 
-    init() {
+    var isSelectedEngineReady: Bool {
+        switch transcriptionEngine {
+        case .cloud:
+            hasAPIKey && currentAPIKey() != nil
+        case .offline:
+            offlineModel.isReady
+        }
+    }
+
+    init(offlineModel: OfflineModelManager? = nil) {
+        self.offlineModel = offlineModel ?? OfflineModelManager()
+        transcriptionEngine = UserDefaults.standard.string(
+            forKey: Self.transcriptionEngineKey
+        ).flatMap(TranscriptionEngine.init(rawValue:)) ?? .cloud
         transcriptionInstructions = UserDefaults.standard.object(
             forKey: Self.transcriptionInstructionsKey
         ) as? String ?? Self.defaultTranscriptionInstructions
+        offlineInitialPrompt = UserDefaults.standard.string(
+            forKey: Self.offlineInitialPromptKey
+        ) ?? ""
         hasAPIKey = (try? KeychainStore.loadAPIKey())?.isEmpty == false
         refreshPermissions()
     }
@@ -111,6 +146,20 @@ final class AppModel: ObservableObject {
 
     func resetTranscriptionInstructions() {
         transcriptionInstructions = Self.defaultTranscriptionInstructions
+    }
+
+    func prompt(for engine: TranscriptionEngine) -> String {
+        switch engine {
+        case .cloud: transcriptionInstructions
+        case .offline: offlineInitialPrompt
+        }
+    }
+
+    func resetPromptForSelectedEngine() {
+        switch transcriptionEngine {
+        case .cloud: resetTranscriptionInstructions()
+        case .offline: offlineInitialPrompt = ""
+        }
     }
 
     private func openPrivacySettings(anchor: String) {

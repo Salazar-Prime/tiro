@@ -20,7 +20,7 @@
 
 <p align="center"><a href="https://github.com/Salazar-Prime/tiro/releases">Download the public beta</a></p>
 
-Tiro is a native macOS menu-bar app that turns speech into text wherever your cursor is active. It briefly pauses active media and mutes system output while recording, transcribes the finished audio with OpenAI, then inserts the result into the focused app.
+Tiro is a native macOS menu-bar app that turns speech into text wherever your cursor is active. It briefly pauses active media and mutes system output while recording, transcribes the finished audio with OpenAI or locally with whisper.cpp, then inserts the result into the focused app.
 
 ## See it in action
 
@@ -39,7 +39,10 @@ Tiro is a native macOS menu-bar app that turns speech into text wherever your cu
 
 ## Setup
 
-You need macOS 14 or newer, an OpenAI API key with API billing enabled, and Microphone and Accessibility permission. The API key stays in macOS Keychain.
+You need macOS 14 or newer plus Microphone and Accessibility permission. Choose a transcription engine in Settings:
+
+- **OpenAI** uses `gpt-4o-mini-transcribe` and requires an API key with API billing enabled. The key stays in macOS Keychain.
+- **On-device** uses [whisper.cpp](https://github.com/ggml-org/whisper.cpp) and a one-time, roughly 60 MB English model download. It does not require an API key.
 
 Public beta builds are Sparkle-signed but not yet Apple-notarized. On first launch, macOS may require you to Control-click Tiro and choose **Open**.
 
@@ -64,7 +67,8 @@ Move `Tiro.app` to `/Applications` before granting permissions so macOS can keep
 ## Privacy
 
 - Recording starts only when you use the shortcut.
-- Tiro sends the recording and any optional transcription instructions directly to OpenAI's `/v1/audio/transcriptions` endpoint using your API key. The current build uses `gpt-4o-mini-transcribe`, not the `whisper-1` model.
+- In OpenAI mode, Tiro sends the recording and any optional transcription instructions directly to OpenAI's `/v1/audio/transcriptions` endpoint using your API key. The current build uses `gpt-4o-mini-transcribe`, not the `whisper-1` model.
+- In On-device mode, audio and transcription stay on your Mac. Tiro uses whisper.cpp 1.9.2 with the English `base.en` Q5 model. Optional offline vocabulary/context is an initial Whisper prompt, not post-processing.
 - OpenAI handles these requests under its API data controls, which differ from ChatGPT's consumer data controls. Its current policy lists the transcription endpoint as not used for training, with no abuse-monitoring or application-state retention. See [OpenAI's API data controls](https://developers.openai.com/api/docs/guides/your-data#default-usage-policies-by-endpoint).
 - Temporary audio on your Mac is deleted after the transcription request completes.
 - Tiro does not send analytics, telemetry, crash reports, or application logs. Limited operational diagnostics stay in macOS's local unified log and do not include audio or transcript content.
@@ -84,4 +88,4 @@ swift test
 swift build
 ```
 
-Beta releases follow [APP_PUBLISH.md](APP_PUBLISH.md). Tiro uses SwiftUI/AppKit, AVFoundation, Security/Keychain, OpenAI transcription, and Sparkle 2.
+Beta releases follow [APP_PUBLISH.md](APP_PUBLISH.md). Tiro uses SwiftUI/AppKit, AVFoundation, Security/Keychain, OpenAI transcription, whisper.cpp, and Sparkle 2.
