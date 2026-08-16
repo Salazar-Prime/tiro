@@ -21,9 +21,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.5.0-beta.4</string>
+    <string>0.5.0-beta.5</string>
     <key>CFBundleVersion</key>
-    <string>14</string>
+    <string>15</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSUIElement</key>
@@ -32,6 +32,8 @@
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>Tiro records speech while its voice shortcut is active so it can transcribe your words.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Tiro captures a screenshot only when you choose a screen or selection action, then saves it locally and pastes it where you were typing.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>SUEnableAutomaticChecks</key>

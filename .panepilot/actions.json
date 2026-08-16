@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "actions": [
+    {
+      "id": "af2de249-626c-4d44-92a0-b8adac6a2b5b",
+      "name": "Install latest Android APK over ADB",
+      "command": "./Scripts/install-latest-android-apk.sh"
+    }
+  ]
+}

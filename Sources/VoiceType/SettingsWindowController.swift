@@ -3,8 +3,14 @@ import SwiftUI
 
 @MainActor
 final class SettingsWindowController: NSWindowController {
-    init(model: AppModel) {
-        let rootView = SettingsView(model: model)
+    private let navigation = SettingsNavigationModel()
+
+    init(model: AppModel, historyStore: TranscriptHistoryStore) {
+        let rootView = SettingsView(
+            model: model,
+            historyStore: historyStore,
+            navigation: navigation
+        )
         let hosting = NSHostingController(rootView: rootView)
         let window = NSWindow(contentViewController: hosting)
         window.title = "Tiro"
@@ -17,6 +23,10 @@ final class SettingsWindowController: NSWindowController {
         window.sharingType = .readOnly
         window.center()
         super.init(window: window)
+    }
+
+    func select(_ page: SettingsPage) {
+        navigation.selectedPage = page
     }
 
     @available(*, unavailable)

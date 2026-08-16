@@ -22,6 +22,10 @@
 
 Tiro is a native macOS menu-bar app that turns speech into text wherever your cursor is active. It briefly pauses active media and mutes system output while recording, transcribes the finished audio with OpenAI or locally with whisper.cpp, then inserts the result into the focused app.
 
+Tiro can also capture the usable screen or a dragged selection from its menu-bar menu. Screenshots are saved as PNG files in `Pictures/Tiro screenshots`, pasted into the previously focused app when it accepts images, and saved in history as readable local paths. While the microphone is listening, press <kbd>S</kbd> by itself to append one or more screenshots to that transcript.
+
+Screenshot paths are surrounded with single quotes by default. The Screenshots settings page can disable wrapping or replace the text before and after each path with any custom text.
+
 ## See it in action
 
 <p align="center">
@@ -30,16 +34,22 @@ Tiro is a native macOS menu-bar app that turns speech into text wherever your cu
 
 ## Shortcuts
 
+These are the defaults. Every route can be changed in Tiro’s Settings; voice typing can use either a modifier-only chord or modifiers plus a regular key.
+
+Opening transcript history is also available as an optional global shortcut. Assign it from the Shortcuts page in Settings.
+
 | Gesture | Result |
 | --- | --- |
 | Hold <kbd>Control</kbd> + <kbd>Option</kbd> | Record; release to transcribe and insert |
 | Double-tap <kbd>Control</kbd> + <kbd>Option</kbd> | Lock recording hands-free |
 | Press <kbd>Control</kbd> + <kbd>Option</kbd> while locked | Stop and insert |
+| Press <kbd>S</kbd> while voice typing is active | Attach the usable screen to this transcript |
+| <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>2</kbd> | Capture and paste a dragged screen selection |
 | <kbd>Control</kbd> + <kbd>Command</kbd> + <kbd>V</kbd> | Insert the last transcript again |
 
 ## Setup
 
-You need macOS 14 or newer plus Microphone and Accessibility permission. Choose a transcription engine in Settings:
+You need macOS 14 or newer plus Microphone and Accessibility permission. Screenshot capture additionally requires Screen Recording permission. Choose a transcription engine in Settings:
 
 - **OpenAI** uses `gpt-4o-mini-transcribe` and requires an API key with API billing enabled. The key stays in macOS Keychain.
 - **On-device** uses [whisper.cpp](https://github.com/ggml-org/whisper.cpp) and a one-time, roughly 60 MB English model download. It does not require an API key.
@@ -73,6 +83,7 @@ Move `Tiro.app` to `/Applications` before granting permissions so macOS can keep
 - Temporary audio on your Mac is deleted after the transcription request completes.
 - Tiro does not send analytics, telemetry, crash reports, or application logs. Limited operational diagnostics stay in macOS's local unified log and do not include audio or transcript content.
 - Transcript history stays on this Mac and can be searched, deleted, or cleared at any time.
+- Screenshots are taken only when you choose a capture action and remain in your local `Pictures/Tiro screenshots` folder.
 - Any temporary pasteboard content is restored and marked to keep it out of compatible clipboard-history apps.
 - Sparkle contacts Tiro's GitHub-hosted update feed to check for new releases.
 
@@ -80,6 +91,9 @@ Move `Tiro.app` to `/Applications` before granting permissions so macOS can keep
 
 - [x] Paste the last transcript again with <kbd>Control</kbd> + <kbd>Command</kbd> + <kbd>V</kbd>
 - [x] Browse, search, copy, delete, and clear local transcript history
+- [x] Capture the visible screen without the menu bar or Dock, or drag a selection
+- [x] Customize voice, paste, and screenshot shortcuts from Settings
+- [x] Open searchable transcript history inside Settings or with a custom shortcut
 
 ## Development
 

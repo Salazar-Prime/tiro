@@ -3,22 +3,22 @@
     <channel>
         <title>Tiro</title>
         <item>
-            <title>0.5.0-beta.4</title>
-            <pubDate>Wed, 12 Aug 2026 11:49:44 -0400</pubDate>
+            <title>0.5.0-beta.5</title>
+            <pubDate>Sun, 16 Aug 2026 14:29:21 -0400</pubDate>
             <link>https://github.com/Salazar-Prime/tiro</link>
-            <sparkle:version>14</sparkle:version>
-            <sparkle:shortVersionString>0.5.0-beta.4</sparkle:shortVersionString>
+            <sparkle:version>15</sparkle:version>
+            <sparkle:shortVersionString>0.5.0-beta.5</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Tiro public beta 4
+            <description sparkle:format="markdown"><![CDATA[# Tiro public beta 5
 
-This beta adds private, on-device transcription.
+This beta adds screenshot capture, customizable shortcuts, and a refreshed interface.
 
-- Choose OpenAI or On-device from Settings.
-- Download the English Whisper model once, then transcribe without uploading audio or using an API key.
-- Add optional vocabulary and context to help the offline model recognize names and specialist terms.
+- Capture the usable screen or a dragged selection, then paste it or attach it to a transcript.
+- Customize voice typing, paste, screenshot, and history shortcuts in Settings.
+- Browse history inside the redesigned Settings window with updated Tiro branding.
 ]]></description>
-            <enclosure url="https://github.com/Salazar-Prime/tiro/releases/download/v0.5.0-beta.4/Tiro-0.5.0-beta.4.zip" length="5021441" type="application/octet-stream" sparkle:edSignature="2j/EwQlRphsIGUNlJgsiDQYubg33RdRrNedXJIRFlMTinHoPddXYYemFHD4LSP4fru8Anau+bzuc+ZTvTmBsAg=="/>
+            <enclosure url="https://github.com/Salazar-Prime/tiro/releases/download/v0.5.0-beta.5/Tiro-0.5.0-beta.5.zip" length="5231607" type="application/octet-stream" sparkle:edSignature="Z/5fQ2begiSXZWlAYXuqYEVmwrsXNpGD59u/sN46QxRJfpEcg/QGlMH4XH00k3x0f+uilpJQ+UeskphGzYVAAA=="/>
         </item>
     </channel>
 </rss>

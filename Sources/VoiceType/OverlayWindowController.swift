@@ -100,8 +100,10 @@ final class OverlayModel: ObservableObject {
 
 enum OverlayState: Equatable {
     case preparing
-    case listening(level: Float, locked: Bool)
+    case listening(level: Float, locked: Bool, screenshotCount: Int)
     case transcribing
     case success(String)
     case error(String)
+    case screenshotSuccess(String)
+    case screenshotError(String)
 }

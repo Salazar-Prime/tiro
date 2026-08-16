@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct VoiceTypePalette {
@@ -8,25 +9,59 @@ struct VoiceTypePalette {
     let stroke: Color
     let coral: Color
     let aqua: Color
+    let danger: Color
 
     init(_ colorScheme: ColorScheme) {
         switch colorScheme {
         case .dark:
-            canvas = Color(red: 0.063, green: 0.082, blue: 0.110) // Midnight graphite
-            surface = Color(red: 0.094, green: 0.122, blue: 0.161) // Receiver
-            field = Color(red: 0.043, green: 0.059, blue: 0.082) // Recessed signal bay
-            ink = Color(red: 0.949, green: 0.965, blue: 0.980) // Air
-            stroke = Color(red: 0.180, green: 0.224, blue: 0.282) // Quiet line
-            coral = Color(red: 1.000, green: 0.459, blue: 0.412)
-            aqua = Color(red: 0.439, green: 0.835, blue: 0.820)
+            canvas = Color(red: 0.024, green: 0.082, blue: 0.071) // Tiro ink
+            surface = Color(red: 0.055, green: 0.184, blue: 0.157) // Forest glass
+            field = Color(red: 0.035, green: 0.122, blue: 0.102) // Recessed nib
+            ink = Color(red: 0.941, green: 0.992, blue: 0.965) // Mint paper
+            stroke = Color(red: 0.145, green: 0.310, blue: 0.263) // Quiet green line
+            coral = Color(red: 0.941, green: 0.722, blue: 0.271) // Gold writing tip
+            aqua = Color(red: 0.576, green: 0.863, blue: 0.706) // Mint nib
+            danger = Color(red: 1.000, green: 0.455, blue: 0.412)
         default:
-            canvas = Color(red: 0.965, green: 0.970, blue: 0.955)
-            surface = Color(red: 0.992, green: 0.994, blue: 0.988)
-            field = Color(red: 0.914, green: 0.918, blue: 0.902)
-            ink = Color(red: 0.090, green: 0.095, blue: 0.110)
-            stroke = Color(red: 0.835, green: 0.840, blue: 0.820)
-            coral = Color(red: 1.000, green: 0.420, blue: 0.370)
-            aqua = Color(red: 0.390, green: 0.850, blue: 0.800)
+            canvas = Color(red: 0.933, green: 0.961, blue: 0.945) // Sage paper
+            surface = Color(red: 0.984, green: 0.992, blue: 0.984) // Clean sheet
+            field = Color(red: 0.886, green: 0.929, blue: 0.902) // Soft mint well
+            ink = Color(red: 0.043, green: 0.141, blue: 0.114) // Tiro ink
+            stroke = Color(red: 0.753, green: 0.835, blue: 0.792) // Quiet green line
+            coral = Color(red: 0.659, green: 0.424, blue: 0.031) // Accessible gold
+            aqua = Color(red: 0.137, green: 0.486, blue: 0.337) // Accessible mint
+            danger = Color(red: 0.765, green: 0.192, blue: 0.157)
         }
     }
+}
+
+struct TiroBrandMark: View {
+    let size: CGFloat
+    var showsShadow = true
+
+    var body: some View {
+        Image(nsImage: TiroBrandAsset.image)
+            .resizable()
+            .interpolation(.high)
+            .frame(width: size, height: size)
+            .shadow(
+                color: .black.opacity(showsShadow ? 0.20 : 0),
+                radius: size * 0.10,
+                y: size * 0.05
+            )
+            .accessibilityLabel("Tiro")
+    }
+}
+
+@MainActor
+private enum TiroBrandAsset {
+    static let image: NSImage = {
+        guard let iconURL = Bundle.main.url(
+            forResource: "AppIcon",
+            withExtension: "svg"
+        ), let image = NSImage(contentsOf: iconURL) else {
+            return NSApp.applicationIconImage
+        }
+        return image
+    }()
 }

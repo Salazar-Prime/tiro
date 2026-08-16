@@ -14,10 +14,13 @@ final class VoiceTypingController {
 
     private var pendingActivation: UUID?
     private var transcriptionTask: Task<Void, Never>?
+    private var recordingScreenshotTasks: [Task<URL?, Never>] = []
     private var recordingIsLocked = false
     private var recordingEngine: TranscriptionEngine?
+    private var latestInputLevel: Float = 0.2
 
     var onNeedsSettings: (() -> Void)?
+    var onListeningChanged: ((Bool) -> Void)?
 
     init(
         appModel: AppModel,
@@ -36,12 +39,21 @@ final class VoiceTypingController {
         case .lockRecording:
             recordingIsLocked = true
             if recorder.isRecording {
-                overlay.show(.listening(level: 0.46, locked: true))
+                showListening(level: 0.46)
             }
         case .finishRecording:
             finishRecording()
         case .cancelScheduledFinish, .scheduleFinish:
             break
+        }
+    }
+
+    func captureScreenshot(using controller: ScreenshotCaptureController) {
+        guard recorder.isRecording || pendingActivation != nil else { return }
+        guard let task = controller.captureUsableScreenForTranscript() else { return }
+        recordingScreenshotTasks.append(task)
+        if recorder.isRecording {
+            showListening(level: latestInputLevel)
         }
     }
 
@@ -79,6 +91,8 @@ final class VoiceTypingController {
         recordingIsLocked = false
         recordingEngine = nil
         recorder.cancel()
+        onListeningChanged?(false)
+        discardRecordingScreenshots()
         outputMuter.restore()
         transcriptionTask?.cancel()
         transcriptionTask = nil
@@ -111,6 +125,8 @@ final class VoiceTypingController {
 
         recordingIsLocked = false
         recordingEngine = engine
+        discardRecordingScreenshots()
+        latestInputLevel = 0.2
         let activation = UUID()
         pendingActivation = activation
         overlay.show(.preparing)
@@ -121,6 +137,7 @@ final class VoiceTypingController {
             guard pendingActivation == activation else { return }
             guard granted else {
                 pendingActivation = nil
+                discardRecordingScreenshots()
                 overlay.show(.error("Microphone blocked"))
                 overlay.hide(after: 1.6)
                 onNeedsSettings?()
@@ -138,11 +155,13 @@ final class VoiceTypingController {
                     format: engine == .offline ? .whisperPCM : .compressed
                 ) { [weak self] level in
                     guard let self else { return }
-                    self.overlay.show(.listening(level: level, locked: self.recordingIsLocked))
+                    self.showListening(level: level)
                 }
-                overlay.show(.listening(level: 0.2, locked: recordingIsLocked))
+                onListeningChanged?(true)
+                showListening(level: 0.2)
             } catch {
                 recordingEngine = nil
+                discardRecordingScreenshots()
                 outputMuter.restore()
                 overlay.show(.error("Microphone unavailable"))
                 overlay.hide(after: 1.6)
@@ -157,12 +176,17 @@ final class VoiceTypingController {
         recordingEngine = nil
         let recordingDuration = recorder.recordingDuration
         let fileURL = recorder.stop()
+        onListeningChanged?(false)
+        let screenshotTasks = recordingScreenshotTasks
+        recordingScreenshotTasks.removeAll()
         outputMuter.restore()
         guard let fileURL else {
+            screenshotTasks.forEach { $0.cancel() }
             overlay.hide()
             return
         }
         guard recordingDuration >= Self.minimumRecordingDuration else {
+            screenshotTasks.forEach { $0.cancel() }
             try? FileManager.default.removeItem(at: fileURL)
             overlay.show(.error("Recording too short"))
             overlay.hide(after: 1.4)
@@ -196,8 +220,19 @@ final class VoiceTypingController {
                     )
                 }
                 guard !Task.isCancelled else { return }
-                historyStore.add(text)
-                switch await TextInsertionService.insert(text) {
+                var screenshotURLs: [URL] = []
+                for screenshotTask in screenshotTasks {
+                    if let fileURL = await screenshotTask.value {
+                        screenshotURLs.append(fileURL)
+                    }
+                }
+                let completedText = ScreenshotLinkFormatter.appending(
+                    screenshotURLs,
+                    to: text,
+                    wrapper: appModel.screenshotPathWrapper
+                )
+                historyStore.add(completedText)
+                switch await TextInsertionService.insert(completedText) {
                 case .insertedDirectly:
                     overlay.show(.success("Pasted"))
                 case .pasteCommandSent:
@@ -218,6 +253,22 @@ final class VoiceTypingController {
                 overlay.hide(after: 2.4)
             }
         }
+    }
+
+    private func showListening(level: Float) {
+        latestInputLevel = level
+        overlay.show(
+            .listening(
+                level: level,
+                locked: recordingIsLocked,
+                screenshotCount: recordingScreenshotTasks.count
+            )
+        )
+    }
+
+    private func discardRecordingScreenshots() {
+        recordingScreenshotTasks.forEach { $0.cancel() }
+        recordingScreenshotTasks.removeAll()
     }
 }
 

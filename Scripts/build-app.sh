@@ -16,6 +16,7 @@ mkdir -p "$CONTENTS_DIR/MacOS" "$CONTENTS_DIR/Resources" "$FRAMEWORKS_DIR"
 cp "$PROJECT_DIR/.build/release/VoiceType" "$CONTENTS_DIR/MacOS/VoiceType"
 cp "$PROJECT_DIR/Resources/Info.plist" "$CONTENTS_DIR/Info.plist"
 cp "$PROJECT_DIR/Resources/AppIcon.icns" "$CONTENTS_DIR/Resources/AppIcon.icns"
+cp "$PROJECT_DIR/Resources/AppIcon.svg" "$CONTENTS_DIR/Resources/AppIcon.svg"
 cp "$PROJECT_DIR/Resources/ThirdPartyNotices.txt" "$CONTENTS_DIR/Resources/ThirdPartyNotices.txt"
 
 SPARKLE_FRAMEWORK=$(find "$PROJECT_DIR/.build" -path '*/release/Sparkle.framework' -print -quit)

@@ -1,37 +1,150 @@
 import SwiftUI
 
+enum SettingsPage: String, CaseIterable, Identifiable {
+    case general
+    case shortcuts
+    case screenshots
+    case transcription
+    case history
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .general: "General"
+        case .shortcuts: "Shortcuts"
+        case .screenshots: "Screenshots"
+        case .transcription: "Transcription"
+        case .history: "History"
+        }
+    }
+
+    var heading: String {
+        switch self {
+        case .general: "App setup"
+        case .shortcuts: "Keyboard shortcuts"
+        case .screenshots: "Screenshot capture"
+        case .transcription: "Speech to text"
+        case .history: "Transcript history"
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .general:
+            "Check system access and review the gestures you’ll use most."
+        case .shortcuts:
+            "Choose how you start dictation, paste history, and trigger captures."
+        case .screenshots:
+            "Capture the visible screen or a selection, then insert it where you’re working."
+        case .transcription:
+            "Choose cloud or on-device transcription and tune how speech becomes text."
+        case .history:
+            "Search, copy, or remove the words and screenshot paths you’ve captured."
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .general: "switch.2"
+        case .shortcuts: "command"
+        case .screenshots: "viewfinder"
+        case .transcription: "waveform"
+        case .history: "clock.arrow.circlepath"
+        }
+    }
+
+    func tint(_ palette: VoiceTypePalette) -> Color {
+        switch self {
+        case .general, .screenshots, .history: palette.aqua
+        case .shortcuts, .transcription: palette.coral
+        }
+    }
+}
+
+@MainActor
+final class SettingsNavigationModel: ObservableObject {
+    @Published var selectedPage: SettingsPage = .general
+}
+
 struct SettingsView: View {
     @ObservedObject var model: AppModel
+    @ObservedObject var historyStore: TranscriptHistoryStore
+    @ObservedObject var navigation: SettingsNavigationModel
+    @StateObject private var shortcutRecorder = ShortcutRecordingSession()
     @Environment(\.colorScheme) private var colorScheme
 
     private var palette: VoiceTypePalette { VoiceTypePalette(colorScheme) }
+    private var selectedPage: SettingsPage { navigation.selectedPage }
 
     var body: some View {
         ZStack {
             palette.canvas.ignoresSafeArea()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    header
-                    shortcutStrip
-                    setupSection
-                    engineSection
-                    if model.transcriptionEngine == .cloud {
-                        apiKeySection
-                    } else {
-                        OfflineModelSection(
-                            manager: model.offlineModel,
-                            palette: palette
-                        )
+            VStack(spacing: 0) {
+                header
+                settingsNavigation
+
+                Divider()
+                    .overlay(palette.stroke)
+
+                if selectedPage == .history {
+                    HistoryView(
+                        store: historyStore,
+                        pasteShortcut: model.shortcutConfiguration.pasteLast
+                    )
+                    .id(selectedPage)
+                    .clipped()
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 24) {
+                            pageHeading
+                            selectedPageContent
+                        }
+                        .id(selectedPage)
+                        .padding(.horizontal, 30)
+                        .padding(.top, 25)
+                        .padding(.bottom, 28)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    transcriptionSection
-                    privacyNote
                 }
-                .padding(.horizontal, 30)
-                .padding(.top, 34)
-                .padding(.bottom, 28)
             }
         }
         .onAppear { model.refreshPermissions() }
+        .onChange(of: selectedPage) {
+            shortcutRecorder.cancel()
+        }
+        .onDisappear { shortcutRecorder.cancel() }
+    }
+
+    @ViewBuilder
+    private var selectedPageContent: some View {
+        switch selectedPage {
+        case .general:
+            shortcutStrip
+            setupSection
+        case .shortcuts:
+            ShortcutSettingsSection(
+                model: model,
+                recorder: shortcutRecorder,
+                palette: palette
+            )
+        case .screenshots:
+            screenshotSection
+        case .transcription:
+            engineSection
+            if model.transcriptionEngine == .cloud {
+                apiKeySection
+            } else {
+                OfflineModelSection(
+                    manager: model.offlineModel,
+                    palette: palette
+                )
+            }
+            transcriptionSection
+            privacyNote
+        case .history:
+            EmptyView()
+        }
     }
 
     private var engineSection: some View {
@@ -67,42 +180,132 @@ struct SettingsView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: 18) {
-            VStack(alignment: .leading, spacing: 7) {
-                Text("TIRO")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .tracking(1.6)
-                    .foregroundStyle(palette.coral)
-                Text("Speak. Release.\nIt’s there.")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .tracking(-1.1)
+        HStack(spacing: 13) {
+            TiroBrandMark(size: 44)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Tiro")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .tracking(-0.3)
                     .foregroundStyle(palette.ink)
+                Text("SETTINGS · \(selectedPage.title.uppercased())")
+                    .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                    .tracking(0.8)
+                    .foregroundStyle(palette.ink.opacity(0.48))
             }
+
             Spacer()
+
             Button(action: model.previewOverlay) {
-                VStack(spacing: 7) {
-                    Image(systemName: "waveform.and.mic")
-                        .font(.system(size: 21, weight: .semibold))
-                    Text("PREVIEW")
-                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                        .tracking(0.7)
+                HStack(spacing: 7) {
+                    Circle()
+                        .fill(palette.aqua)
+                        .frame(width: 7, height: 7)
+                    Text("Preview pill")
+                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                 }
                 .foregroundStyle(palette.ink)
-                .frame(width: 72, height: 72)
-                .background(palette.aqua.opacity(colorScheme == .dark ? 0.19 : 0.42), in: Circle())
+                .padding(.horizontal, 12)
+                .frame(height: 32)
+                .background(palette.aqua.opacity(colorScheme == .dark ? 0.16 : 0.30), in: Capsule())
             }
             .buttonStyle(.plain)
             .help("Preview the signal capsule")
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 20)
+        .padding(.bottom, 14)
+        .background {
+            LinearGradient(
+                colors: [
+                    palette.aqua.opacity(colorScheme == .dark ? 0.10 : 0.07),
+                    Color.clear,
+                    palette.coral.opacity(colorScheme == .dark ? 0.07 : 0.04)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        }
+    }
+
+    private var settingsNavigation: some View {
+        HStack(spacing: 4) {
+            ForEach(SettingsPage.allCases) { page in
+                Button {
+                    withAnimation(.easeOut(duration: 0.16)) {
+                        navigation.selectedPage = page
+                    }
+                } label: {
+                    VStack(spacing: 5) {
+                        Image(systemName: page.icon)
+                            .font(.system(size: 13, weight: .semibold))
+                        Text(page.title)
+                            .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                    }
+                    .foregroundStyle(
+                        selectedPage == page
+                            ? palette.ink
+                            : palette.ink.opacity(0.52)
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .contentShape(Rectangle())
+                    .background(
+                        selectedPage == page ? palette.field : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 10)
+                    )
+                    .overlay(alignment: .bottom) {
+                        Capsule()
+                            .fill(page.tint(palette))
+                            .frame(width: selectedPage == page ? 24 : 5, height: 3)
+                            .opacity(selectedPage == page ? 1 : 0.26)
+                            .padding(.bottom, 4)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(5)
+        .background(palette.surface, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(palette.stroke, lineWidth: 1)
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 16)
+    }
+
+    private var pageHeading: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(selectedPage.heading)
+                .font(.system(size: 25, weight: .bold, design: .rounded))
+                .tracking(-0.55)
+                .foregroundStyle(palette.ink)
+            Text(selectedPage.explanation)
+                .font(.system(size: 11.5, weight: .regular, design: .rounded))
+                .foregroundStyle(palette.ink.opacity(0.60))
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private var shortcutStrip: some View {
         HStack(spacing: 0) {
-            ShortcutCell(keys: ["⌃", "⌥"], label: "Hold to speak", palette: palette)
+            ShortcutCell(
+                keys: model.shortcutConfiguration.voiceTyping.displayTokens,
+                label: "Hold to speak",
+                palette: palette
+            )
             Divider().frame(height: 48)
-            ShortcutCell(keys: ["2×", "⌃", "⌥"], label: "Lock the mic", palette: palette)
+            ShortcutCell(
+                keys: ["2×"] + model.shortcutConfiguration.voiceTyping.displayTokens,
+                label: "Lock the mic",
+                palette: palette
+            )
             Divider().frame(height: 48)
-            ShortcutCell(keys: ["⌃", "⌘", "V"], label: "Paste last", palette: palette)
+            ShortcutCell(
+                keys: model.shortcutConfiguration.pasteLast?.displayTokens ?? ["—"],
+                label: "Paste last",
+                palette: palette
+            )
         }
         .padding(.vertical, 12)
         .background(palette.surface, in: RoundedRectangle(cornerRadius: 18))
@@ -133,7 +336,208 @@ struct SettingsView: View {
                 palette: palette,
                 action: model.requestAccessibility
             )
+            PermissionRow(
+                icon: "rectangle.dashed.badge.record",
+                title: "Screen Recording",
+                explanation: "Capture only when you choose",
+                status: model.screenCaptureStatus,
+                tint: palette.coral,
+                palette: palette,
+                action: model.requestScreenCapture
+            )
         }
+    }
+
+    private var screenshotSection: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            HStack {
+                SectionLabel(text: "SCREENSHOT DROP", palette: palette)
+                Spacer()
+                Text("\(model.shortcutConfiguration.captureSelection?.displayName ?? "NO SHORTCUT") · SELECTION")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundStyle(palette.ink.opacity(0.52))
+            }
+
+            VStack(spacing: 0) {
+                HStack(spacing: 10) {
+                    ScreenshotAction(
+                        icon: "rectangle.inset.filled",
+                        title: "Visible screen",
+                        detail: "Without menu bar or Dock",
+                        tint: palette.aqua,
+                        palette: palette,
+                        action: model.captureUsableScreen
+                    )
+                    ScreenshotAction(
+                        icon: "viewfinder",
+                        title: "Selection",
+                        detail: "Drag to frame any area",
+                        tint: palette.coral,
+                        palette: palette,
+                        action: model.captureSelection
+                    )
+                }
+                .padding(10)
+
+                Divider()
+                    .padding(.horizontal, 12)
+
+                HStack(spacing: 9) {
+                    Image(systemName: "folder.fill")
+                        .foregroundStyle(palette.aqua)
+                    Text("Pictures / Tiro screenshots")
+                        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                        .foregroundStyle(palette.ink.opacity(0.62))
+                    Spacer()
+                    Button("Open folder", action: model.openScreenshotsFolder)
+                        .buttonStyle(.plain)
+                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(palette.ink)
+                }
+                .padding(.horizontal, 15)
+                .frame(height: 42)
+            }
+            .background(palette.surface, in: RoundedRectangle(cornerRadius: 16))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(palette.stroke, lineWidth: 1)
+            }
+            .disabled(model.screenshotCaptureIsBusy)
+            .opacity(model.screenshotCaptureIsBusy ? 0.62 : 1)
+
+            screenshotPathWrapperCard
+
+            VStack(alignment: .leading, spacing: 5) {
+                Label(
+                    attachmentShortcutHelp,
+                    systemImage: "camera.badge.clock"
+                )
+                    .foregroundStyle(palette.aqua)
+                Text("Standalone captures are added to history as readable local paths. Compatible fields receive the image; other fields receive the path \(screenshotPasteHelp).")
+                    .foregroundStyle(palette.ink.opacity(0.60))
+            }
+            .font(.system(size: 10.5, weight: .medium))
+            .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var screenshotPathWrapperCard: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            HStack(spacing: 11) {
+                Image(systemName: "text.quote")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(palette.aqua)
+                    .frame(width: 34, height: 34)
+                    .background(palette.aqua.opacity(0.14), in: RoundedRectangle(cornerRadius: 9))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Surround pasted paths")
+                        .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(palette.ink)
+                    Text("Add text before and after every screenshot path")
+                        .font(.system(size: 9.5, design: .rounded))
+                        .foregroundStyle(palette.ink.opacity(0.56))
+                }
+
+                Spacer()
+
+                Toggle("", isOn: $model.screenshotPathWrappingEnabled)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .help("Turn screenshot path wrapping on or off")
+            }
+
+            Divider()
+
+            HStack(alignment: .bottom, spacing: 10) {
+                pathAffixField(
+                    label: "BEFORE PATH",
+                    placeholder: "Blank",
+                    text: $model.screenshotPathPrefix
+                )
+                pathAffixField(
+                    label: "AFTER PATH",
+                    placeholder: "Blank",
+                    text: $model.screenshotPathSuffix
+                )
+            }
+            .disabled(!model.screenshotPathWrappingEnabled)
+            .opacity(model.screenshotPathWrappingEnabled ? 1 : 0.44)
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text("PREVIEW")
+                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                        .tracking(0.7)
+                        .foregroundStyle(palette.ink.opacity(0.46))
+                    Spacer()
+                    Button("Reset to quotes", action: model.resetScreenshotPathWrapper)
+                        .buttonStyle(.plain)
+                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(palette.coral)
+                }
+
+                Text(screenshotPathPreview)
+                    .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                    .foregroundStyle(palette.ink.opacity(0.76))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .padding(.horizontal, 11)
+                    .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
+                    .background(palette.field, in: RoundedRectangle(cornerRadius: 9))
+            }
+
+            Text("Leave either field blank if you only need text on one side. Turn this off for a plain path.")
+                .font(.system(size: 10, design: .rounded))
+                .foregroundStyle(palette.ink.opacity(0.54))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .background(palette.surface, in: RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(palette.stroke, lineWidth: 1)
+        }
+    }
+
+    private func pathAffixField(
+        label: String,
+        placeholder: String,
+        text: Binding<String>
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label)
+                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                .tracking(0.65)
+                .foregroundStyle(palette.ink.opacity(0.46))
+            TextField(placeholder, text: text)
+                .textFieldStyle(.plain)
+                .font(.system(size: 11.5, design: .monospaced))
+                .padding(.horizontal, 10)
+                .frame(maxWidth: .infinity, minHeight: 34)
+                .background(palette.field, in: RoundedRectangle(cornerRadius: 9))
+        }
+    }
+
+    private var screenshotPathPreview: String {
+        model.screenshotPathWrapper.format(
+            "/Users/you/Pictures/Tiro screenshots/Example.png"
+        )
+    }
+
+    private var attachmentShortcutHelp: String {
+        guard let shortcut = model.shortcutConfiguration.attachScreenshot else {
+            return "Set an attachment shortcut above to add screenshots while speaking."
+        }
+        return "While voice typing, use \(shortcut.displayName) to attach a screenshot."
+    }
+
+    private var screenshotPasteHelp: String {
+        guard let shortcut = model.shortcutConfiguration.pasteLast else {
+            return "from transcript history"
+        }
+        return "with \(shortcut.displayName)"
     }
 
     private var apiKeySection: some View {
@@ -167,7 +571,7 @@ struct SettingsView: View {
                         model.hasAPIKey ? "Key saved in macOS Keychain" : "An API key is required",
                         systemImage: model.hasAPIKey ? "checkmark.seal.fill" : "key.fill"
                     )
-                    .foregroundStyle(model.hasAPIKey ? palette.aqua : palette.coral)
+                    .foregroundStyle(model.hasAPIKey ? palette.aqua : palette.danger)
                     Spacer()
                     Link(
                         "Create a key ↗",
@@ -189,7 +593,7 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.plain)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(palette.coral)
+                    .foregroundStyle(palette.danger)
                 }
             }
             .padding(16)
@@ -339,6 +743,45 @@ private struct EngineChoice: View {
     }
 }
 
+private struct ScreenshotAction: View {
+    let icon: String
+    let title: String
+    let detail: String
+    let tint: Color
+    let palette: VoiceTypePalette
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 11) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 36, height: 36)
+                    .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 10))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(tint.opacity(0.28), style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                    }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(palette.ink)
+                    Text(detail)
+                        .font(.system(size: 9.5, design: .rounded))
+                        .foregroundStyle(palette.ink.opacity(0.56))
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 11)
+            .frame(maxWidth: .infinity, minHeight: 62)
+            .background(palette.field.opacity(0.58), in: RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct OfflineModelSection: View {
     @ObservedObject var manager: OfflineModelManager
     let palette: VoiceTypePalette
@@ -382,7 +825,7 @@ private struct OfflineModelSection: View {
                             manager.removeModel()
                         }
                         .buttonStyle(.plain)
-                        .foregroundStyle(palette.coral)
+                        .foregroundStyle(palette.danger)
                     }
                 }
                 .font(.system(size: 10.5, weight: .medium))
@@ -390,7 +833,7 @@ private struct OfflineModelSection: View {
                 if case let .failed(message) = manager.state {
                     Text(message)
                         .font(.system(size: 10.5))
-                        .foregroundStyle(palette.coral)
+                        .foregroundStyle(palette.danger)
                 }
             }
             .padding(16)

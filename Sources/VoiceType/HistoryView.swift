@@ -3,12 +3,21 @@ import SwiftUI
 
 struct HistoryView: View {
     @ObservedObject var store: TranscriptHistoryStore
+    let pasteShortcut: TiroShortcut?
     @Environment(\.colorScheme) private var colorScheme
     @State private var searchText = ""
     @State private var confirmingClear = false
     @State private var copiedEntryID: UUID?
 
     private var palette: VoiceTypePalette { VoiceTypePalette(colorScheme) }
+
+    init(
+        store: TranscriptHistoryStore,
+        pasteShortcut: TiroShortcut? = ShortcutConfiguration.defaults.pasteLast
+    ) {
+        self.store = store
+        self.pasteShortcut = pasteShortcut
+    }
 
     private var filteredEntries: [TranscriptHistoryEntry] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -57,7 +66,7 @@ struct HistoryView: View {
                     Button("Clear all") { confirmingClear = true }
                         .buttonStyle(.plain)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(palette.coral)
+                        .foregroundStyle(palette.danger)
                 }
             }
 
@@ -116,11 +125,18 @@ struct HistoryView: View {
             Text("Your next transcript starts the tape.")
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(palette.ink)
-            Text("Use ⌃⌘V in any active text field to paste the latest one again.")
+            Text(emptyStateHelp)
                 .font(.system(size: 11.5, design: .rounded))
                 .foregroundStyle(palette.ink.opacity(0.58))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyStateHelp: String {
+        guard let pasteShortcut else {
+            return "Your saved transcripts and screenshot paths will appear here."
+        }
+        return "Use \(pasteShortcut.displayName) in any active text field to paste the latest one again."
     }
 
     private func copy(_ entry: TranscriptHistoryEntry) {
@@ -166,13 +182,6 @@ private struct HistoryRow: View {
                         .buttonStyle(.plain)
                         .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                         .foregroundStyle(isCopied ? palette.aqua : palette.ink.opacity(0.74))
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.plain)
-                    .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(palette.coral.opacity(0.82))
-                    .help("Delete transcript")
                 }
 
                 Text(entry.text)
@@ -180,6 +189,15 @@ private struct HistoryRow: View {
                     .foregroundStyle(palette.ink.opacity(0.90))
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button(action: onDelete) {
+                    Label("Delete", systemImage: "trash")
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                .foregroundStyle(palette.danger.opacity(0.82))
+                .help("Delete transcript")
             }
             .padding(14)
             .background(palette.surface, in: RoundedRectangle(cornerRadius: 15))

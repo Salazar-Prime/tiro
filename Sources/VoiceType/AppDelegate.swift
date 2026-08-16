@@ -13,11 +13,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
         userDriverDelegate: self
     )
     private var voiceController: VoiceTypingController?
+    private var screenshotController: ScreenshotCaptureController?
     private var hotkeyMonitor: HotkeyMonitor?
     private var settingsWindowController: SettingsWindowController?
-    private var historyWindowController: HistoryWindowController?
     private var statusItem: NSStatusItem?
     private var updateMenuItem: NSMenuItem?
+    private var pasteHintMenuItem: NSMenuItem?
+    private var historyMenuItem: NSMenuItem?
+    private var captureScreenMenuItem: NSMenuItem?
+    private var captureSelectionMenuItem: NSMenuItem?
 
     var supportsGentleScheduledUpdateReminders: Bool { true }
 
@@ -35,20 +39,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
         }
         self.voiceController = voiceController
 
+        let screenshotController = ScreenshotCaptureController(
+            model: appModel,
+            overlay: overlayController,
+            historyStore: historyStore
+        )
+        self.screenshotController = screenshotController
+
         let hotkeyMonitor = HotkeyMonitor(
+            shortcuts: appModel.shortcutConfiguration,
             onVoiceAction: { [weak voiceController] action in
                 voiceController?.handle(action)
             },
             onPaste: { [weak voiceController] in
                 voiceController?.pasteLastTranscript()
+            },
+            onOpenHistory: { [weak self] in
+                self?.openHistory()
+            },
+            onScreenshot: { [weak voiceController, weak screenshotController] in
+                guard let screenshotController else { return }
+                voiceController?.captureScreenshot(using: screenshotController)
+            },
+            onCaptureScreen: { [weak screenshotController] in
+                screenshotController?.capture(.usableScreen)
+            },
+            onCaptureSelection: { [weak screenshotController] in
+                screenshotController?.capture(.selection)
+            },
+            onRegistrationFailure: { [weak appModel] action in
+                appModel?.reportShortcutRegistrationFailure(action)
             }
         )
         hotkeyMonitor.start()
         self.hotkeyMonitor = hotkeyMonitor
+        voiceController.onListeningChanged = { [weak hotkeyMonitor] isListening in
+            hotkeyMonitor?.setVoiceTypingActive(isListening)
+        }
 
         appModel.onPreviewOverlay = { [weak self] in
-            self?.overlayController.show(.listening(level: 0.58, locked: true))
+            self?.overlayController.show(
+                .listening(level: 0.58, locked: true, screenshotCount: 0)
+            )
             self?.overlayController.hide(after: 1.6)
+        }
+        appModel.onCaptureUsableScreen = { [weak screenshotController] in
+            screenshotController?.capture(.usableScreen)
+        }
+        appModel.onCaptureSelection = { [weak screenshotController] in
+            screenshotController?.capture(.selection)
+        }
+        appModel.onOpenScreenshotsFolder = { [weak screenshotController] in
+            screenshotController?.openScreenshotsFolder()
+        }
+        appModel.onShortcutsChanged = { [weak self, weak hotkeyMonitor] shortcuts in
+            hotkeyMonitor?.updateShortcuts(shortcuts)
+            self?.updateShortcutMenuItems(shortcuts)
+        }
+        appModel.onShortcutRecordingChanged = { [weak hotkeyMonitor] isActive in
+            hotkeyMonitor?.setPausedForShortcutRecording(isActive)
         }
 
         configureStatusItem()
@@ -74,6 +123,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
     func applicationWillTerminate(_ notification: Notification) {
         hotkeyMonitor?.stop()
         voiceController?.cancelRecording()
+        screenshotController?.cancel()
     }
 
     @objc private func openSettingsFromMenu() {
@@ -84,10 +134,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
         openHistory()
     }
 
-    private func openSettings() {
+    @objc private func captureUsableScreenFromMenu() {
+        appModel.captureUsableScreen()
+    }
+
+    @objc private func captureSelectionFromMenu() {
+        appModel.captureSelection()
+    }
+
+    @objc private func openScreenshotsFolderFromMenu() {
+        appModel.openScreenshotsFolder()
+    }
+
+    private func openSettings(page: SettingsPage? = nil) {
         if settingsWindowController == nil {
-            settingsWindowController = SettingsWindowController(model: appModel)
+            settingsWindowController = SettingsWindowController(
+                model: appModel,
+                historyStore: historyStore
+            )
             settingsWindowController?.window?.delegate = self
+        }
+        if let page {
+            settingsWindowController?.select(page)
         }
         NSApp.setActivationPolicy(.regular)
         settingsWindowController?.showWindow(nil)
@@ -96,22 +164,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
     }
 
     private func openHistory() {
-        if historyWindowController == nil {
-            historyWindowController = HistoryWindowController(store: historyStore)
-            historyWindowController?.window?.delegate = self
-        }
-        NSApp.setActivationPolicy(.regular)
-        historyWindowController?.showWindow(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        historyWindowController?.window?.makeKeyAndOrderFront(nil)
+        openSettings(page: .history)
     }
 
     func windowWillClose(_ notification: Notification) {
         guard let closingWindow = notification.object as? NSWindow else { return }
-        let utilityWindows = [
-            settingsWindowController?.window,
-            historyWindowController?.window
-        ].compactMap { $0 }
+        let utilityWindows = [settingsWindowController?.window].compactMap { $0 }
 
         guard utilityWindows.contains(where: { $0 === closingWindow }) else { return }
 
@@ -138,20 +196,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
     private func keepDockIconVisible(for notification: Notification) {
         guard let window = notification.object as? NSWindow else { return }
         let isUtilityWindow = settingsWindowController?.window === window
-            || historyWindowController?.window === window
         guard isUtilityWindow else { return }
         NSApp.setActivationPolicy(.regular)
     }
 
     private func configureStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(
-            systemSymbolName: "waveform.and.mic",
-            accessibilityDescription: "Tiro"
-        )
+        item.button?.image = TiroMenuBarIcon.make()
+        item.button?.imageScaling = .scaleProportionallyDown
 
         let menu = NSMenu()
         let heading = NSMenuItem(title: "Tiro", action: nil, keyEquivalent: "")
+        if let brandImage = NSApp.applicationIconImage.copy() as? NSImage {
+            brandImage.size = NSSize(width: 18, height: 18)
+            heading.image = brandImage
+        }
         heading.isEnabled = false
         menu.addItem(heading)
         menu.addItem(.separator())
@@ -163,14 +222,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
         )
         historyItem.target = self
         menu.addItem(historyItem)
+        historyMenuItem = historyItem
 
         let pasteHint = NSMenuItem(
-            title: "⌃⌘V  Paste last transcript",
+            title: "Paste last capture",
             action: nil,
             keyEquivalent: ""
         )
         pasteHint.isEnabled = false
         menu.addItem(pasteHint)
+        pasteHintMenuItem = pasteHint
+        menu.addItem(.separator())
+
+        let usableScreenItem = NSMenuItem(
+            title: "Capture Screen (without Menu Bar & Dock)",
+            action: #selector(captureUsableScreenFromMenu),
+            keyEquivalent: ""
+        )
+        usableScreenItem.image = NSImage(
+            systemSymbolName: "rectangle.inset.filled",
+            accessibilityDescription: "Capture screen"
+        )
+        usableScreenItem.target = self
+        menu.addItem(usableScreenItem)
+        captureScreenMenuItem = usableScreenItem
+
+        let selectionItem = NSMenuItem(
+            title: "Capture Selection…",
+            action: #selector(captureSelectionFromMenu),
+            keyEquivalent: ""
+        )
+        selectionItem.image = NSImage(
+            systemSymbolName: "viewfinder",
+            accessibilityDescription: "Capture selection"
+        )
+        selectionItem.target = self
+        menu.addItem(selectionItem)
+        captureSelectionMenuItem = selectionItem
+
+        let screenshotsFolderItem = NSMenuItem(
+            title: "Open Tiro Screenshots",
+            action: #selector(openScreenshotsFolderFromMenu),
+            keyEquivalent: ""
+        )
+        screenshotsFolderItem.target = self
+        menu.addItem(screenshotsFolderItem)
+        menu.addItem(.separator())
 
         let settingsItem = NSMenuItem(
             title: "Settings…",
@@ -199,6 +296,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
 
         item.menu = menu
         statusItem = item
+        updateShortcutMenuItems(appModel.shortcutConfiguration)
+    }
+
+    private func updateShortcutMenuItems(_ shortcuts: ShortcutConfiguration) {
+        let pasteLabel = shortcuts.pasteLast?.displayName ?? "Not set"
+        pasteHintMenuItem?.title = "\(pasteLabel)  Paste last capture"
+        applyMenuShortcut(shortcuts.openHistory, to: historyMenuItem)
+        applyMenuShortcut(shortcuts.captureScreen, to: captureScreenMenuItem)
+        applyMenuShortcut(shortcuts.captureSelection, to: captureSelectionMenuItem)
+    }
+
+    private func applyMenuShortcut(_ shortcut: TiroShortcut?, to item: NSMenuItem?) {
+        guard let item,
+              let shortcut,
+              let keyEquivalent = shortcut.menuKeyEquivalent
+        else {
+            item?.keyEquivalent = ""
+            item?.keyEquivalentModifierMask = []
+            return
+        }
+        item.keyEquivalent = keyEquivalent
+        item.keyEquivalentModifierMask = shortcut.eventModifierFlags
     }
 
     func standardUserDriverWillHandleShowingUpdate(
@@ -207,10 +326,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
         state: SPUUserUpdateState
     ) {
         updateMenuItem?.title = "Update \(update.displayVersionString) Available…"
-        statusItem?.button?.image = NSImage(
-            systemSymbolName: "arrow.down.circle.fill",
-            accessibilityDescription: "Tiro update available"
-        )
     }
 
     func standardUserDriverDidReceiveUserAttention(forUpdate update: SUAppcastItem) {
@@ -223,9 +338,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
 
     private func resetUpdateIndicator() {
         updateMenuItem?.title = "Check for Updates…"
-        statusItem?.button?.image = NSImage(
-            systemSymbolName: "waveform.and.mic",
-            accessibilityDescription: "Tiro"
-        )
+        statusItem?.button?.image = TiroMenuBarIcon.make()
     }
 }
