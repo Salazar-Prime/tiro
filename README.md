@@ -26,7 +26,7 @@ Tiro can also capture the usable screen or a dragged selection from its menu-bar
 
 Screenshot paths are surrounded with single quotes by default. The Screenshots settings page can disable wrapping or replace the text before and after each path with any custom text.
 
-The **Wireframe Board…** menu item opens a right-side canvas for sketching interface ideas. Draw rectangles, circles, ellipses, freehand marks, mobile frames, and browser windows on a dot grid, then label each element in place. The board can save a clean PNG in `Pictures/Tiro screenshots`, copy its formatted local path, or append the image link to a voice transcript while recording.
+The **Wireframe Board…** menu item opens a right-side canvas for sketching interface ideas. Draw rectangles, circles, ellipses, freehand marks, distinct mobile and browser frames, or a generic dotted frame on a dot grid, then label each element in place. The board hides when focus moves away unless you pin it, and **Clear all** resets the canvas. Exports are cropped to a tight square around the artwork and saved in `Pictures/Tiro screenshots`; you can copy the formatted local path or append it to the current clipboard text.
 
 ## See it in action
 
@@ -36,7 +36,7 @@ The **Wireframe Board…** menu item opens a right-side canvas for sketching int
 
 ## Shortcuts
 
-These are the defaults. Every route can be changed in Tiro’s Settings; voice typing can use either a modifier-only chord or modifiers plus a regular key.
+These are the defaults. Voice, paste, screenshot, and history routes can be changed in Tiro’s Settings; voice typing can use either a modifier-only chord or modifiers plus a regular key. The Wireframe Board menu shortcut is fixed.
 
 Opening transcript history is also available as an optional global shortcut. Assign it from the Shortcuts page in Settings.
 
@@ -48,6 +48,7 @@ Opening transcript history is also available as an optional global shortcut. Ass
 | Press <kbd>S</kbd> while voice typing is active | Attach the usable screen to this transcript |
 | <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>2</kbd> | Capture and paste a dragged screen selection |
 | <kbd>Control</kbd> + <kbd>Command</kbd> + <kbd>V</kbd> | Insert the last transcript again |
+| <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>W</kbd> | Open Wireframe Board while Tiro is active |
 
 ## Setup
 
@@ -87,7 +88,7 @@ Move `Tiro.app` to `/Applications` before granting permissions so macOS can keep
 - Transcript history stays on this Mac and can be searched, deleted, or cleared at any time.
 - Screenshots are taken only when you choose a capture action and remain in your local `Pictures/Tiro screenshots` folder.
 - Wireframe Board drawings stay in memory while Tiro is running. Exported wireframes remain as PNG files in `Pictures/Tiro screenshots`; Tiro does not upload them.
-- **Copy Link** places the exported wireframe’s formatted local path on the clipboard until you replace it. Other temporary pasteboard content is restored and marked to keep it out of compatible clipboard-history apps.
+- **Copy Link** places the exported wireframe’s formatted local path on the clipboard until you replace it. **Append Link** reads the current plain-text clipboard entry and replaces it with the original text followed by that path; it does not read clipboard history. Other temporary pasteboard content used during screenshot insertion is restored and marked to keep it out of compatible clipboard-history apps.
 - Sparkle contacts Tiro's GitHub-hosted update feed to check for new releases.
 
 ## Feature checklist
@@ -97,7 +98,7 @@ Move `Tiro.app` to `/Applications` before granting permissions so macOS can keep
 - [x] Capture the visible screen without the menu bar or Dock, or drag a selection
 - [x] Customize voice, paste, and screenshot shortcuts from Settings
 - [x] Open searchable transcript history inside Settings or with a custom shortcut
-- [x] Sketch labeled UI wireframes and export or attach them as local PNG files
+- [x] Sketch labeled UI wireframes and export or copy their local PNG paths
 
 ## Development
 

@@ -57,15 +57,6 @@ final class VoiceTypingController {
         }
     }
 
-    func appendImageToCurrentTranscript(_ fileURL: URL) -> Bool {
-        guard recorder.isRecording || pendingActivation != nil else { return false }
-        recordingScreenshotTasks.append(Task<URL?, Never> { fileURL })
-        if recorder.isRecording {
-            showListening(level: latestInputLevel)
-        }
-        return true
-    }
-
     func pasteLastTranscript() {
         Task { [weak self] in
             await self?.pasteLastTranscriptNow()

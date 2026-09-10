@@ -15,13 +15,11 @@ final class WireframeWindowController: NSObject, NSWindowDelegate {
 
     init(
         pathWrapper: @escaping () -> ScreenshotPathWrapper,
-        appendImageToTranscript: @escaping (URL) -> Bool,
         onDismiss: @escaping () -> Void
     ) {
         let model = WireframeCanvasModel()
         let exporter = WireframeExporter(
-            pathWrapper: pathWrapper,
-            appendImageToTranscript: appendImageToTranscript
+            pathWrapper: pathWrapper
         )
         self.model = model
         self.exporter = exporter
@@ -53,12 +51,11 @@ final class WireframeWindowController: NSObject, NSWindowDelegate {
         panel.contentView = NSHostingView(
             rootView: WireframeBoardView(
                 model: model,
-                onExport: { action, size, colorScheme in
+                onExport: { action, colorScheme in
                     exporter.perform(
                         action,
                         elements: model.elements,
                         revision: model.contentRevision,
-                        size: size,
                         colorScheme: colorScheme
                     )
                 },
@@ -117,6 +114,9 @@ final class WireframeWindowController: NSObject, NSWindowDelegate {
 
     func windowDidResignKey(_ notification: Notification) {
         model.finishPendingName()
+        if !model.isPinned {
+            dismiss()
+        }
     }
 
     private func activeScreen() -> NSScreen {

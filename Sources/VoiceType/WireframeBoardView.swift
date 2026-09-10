@@ -13,7 +13,7 @@ struct WireframeExportFeedback {
 
 struct WireframeBoardView: View {
     @ObservedObject var model: WireframeCanvasModel
-    let onExport: (WireframeExportAction, CGSize, ColorScheme) -> WireframeExportFeedback
+    let onExport: (WireframeExportAction, ColorScheme) -> WireframeExportFeedback
     let onClose: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
@@ -77,10 +77,23 @@ struct WireframeBoardView: View {
                 }
 
                 VStack(spacing: 0) {
-                    HStack(alignment: .top, spacing: 8) {
-                        drawingToolbar
-                        Spacer(minLength: 8)
-                        exportToolbar(canvasSize: proxy.size)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .top, spacing: 8) {
+                            drawingToolbar
+                            Spacer(minLength: 8)
+                            exportToolbar
+                        }
+
+                        VStack(spacing: 8) {
+                            HStack {
+                                Spacer()
+                                exportToolbar
+                            }
+                            HStack {
+                                drawingToolbar
+                                Spacer()
+                            }
+                        }
                     }
                     .padding(.top, 12)
 
@@ -139,6 +152,11 @@ struct WireframeBoardView: View {
                 } label: {
                     Label("Browser window", systemImage: "macwindow")
                 }
+                Button {
+                    model.selectTool(.dottedFrame)
+                } label: {
+                    Label("Dotted frame", systemImage: "rectangle.dashed")
+                }
             } label: {
                 Image(systemName: frameToolIcon)
                     .font(.system(size: 13, weight: .semibold))
@@ -158,7 +176,7 @@ struct WireframeBoardView: View {
                     model.finishPendingName()
                 }
             )
-            .help("Add a mobile frame or browser window")
+            .help("Add a mobile frame, browser window, or dotted frame")
             .accessibilityLabel("Frame options")
 
             toolbarDivider
@@ -176,6 +194,21 @@ struct WireframeBoardView: View {
             .disabled(!model.canUndo)
             .help("Undo last element")
             .accessibilityLabel("Undo last element")
+
+            Button {
+                model.clearAll()
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 12.5, weight: .semibold))
+                    .frame(width: 28, height: 28)
+                    .foregroundStyle(
+                        model.canClearAll ? palette.danger.opacity(0.78) : palette.ink.opacity(0.25)
+                    )
+            }
+            .buttonStyle(.plain)
+            .disabled(!model.canClearAll)
+            .help("Clear all")
+            .accessibilityLabel("Clear all wireframe elements")
         }
         .modifier(WireframeToolbarChrome(palette: palette, colorScheme: colorScheme))
     }
@@ -202,22 +235,20 @@ struct WireframeBoardView: View {
         .accessibilityLabel(tool.title)
     }
 
-    private func exportToolbar(canvasSize: CGSize) -> some View {
+    private var exportToolbar: some View {
         HStack(spacing: 2) {
             exportButton(
                 action: .save,
                 icon: "square.and.arrow.down",
-                label: "Save image",
-                canvasSize: canvasSize
+                label: "Save image"
             )
             exportButton(
                 action: .copyLink,
                 icon: "doc.on.doc",
-                label: "Copy link",
-                canvasSize: canvasSize
+                label: "Copy link"
             )
             Button {
-                performExport(.appendLink, canvasSize: canvasSize)
+                performExport(.appendLink)
             } label: {
                 ZStack(alignment: .bottomTrailing) {
                     Image(systemName: "link")
@@ -233,10 +264,28 @@ struct WireframeBoardView: View {
             }
             .buttonStyle(.plain)
             .disabled(model.elements.isEmpty)
-            .help("Append link to the active voice transcript")
-            .accessibilityLabel("Append link to transcript")
+            .help("Save and append link to the current clipboard text")
+            .accessibilityLabel("Append link to clipboard")
 
             toolbarDivider
+
+            Button {
+                model.togglePin()
+            } label: {
+                Image(systemName: model.isPinned ? "pin.fill" : "pin")
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 28, height: 28)
+                    .foregroundStyle(model.isPinned ? palette.aqua : palette.ink.opacity(0.64))
+                    .background {
+                        if model.isPinned {
+                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                .fill(palette.aqua.opacity(0.13))
+                        }
+                    }
+            }
+            .buttonStyle(.plain)
+            .help(model.isPinned ? "Unpin and hide when focus changes" : "Keep board visible")
+            .accessibilityLabel(model.isPinned ? "Unpin Wireframe Board" : "Pin Wireframe Board")
 
             Button {
                 model.finishPendingName()
@@ -257,11 +306,10 @@ struct WireframeBoardView: View {
     private func exportButton(
         action: WireframeExportAction,
         icon: String,
-        label: String,
-        canvasSize: CGSize
+        label: String
     ) -> some View {
         Button {
-            performExport(action, canvasSize: canvasSize)
+            performExport(action)
         } label: {
             Image(systemName: icon)
                 .font(.system(size: 12.5, weight: .semibold))
@@ -308,13 +356,16 @@ struct WireframeBoardView: View {
     }
 
     private var frameToolIsSelected: Bool {
-        model.selectedTool == .mobileFrame || model.selectedTool == .browserFrame
+        model.selectedTool == .mobileFrame
+            || model.selectedTool == .browserFrame
+            || model.selectedTool == .dottedFrame
     }
 
     private var frameToolIcon: String {
         switch model.selectedTool {
         case .mobileFrame: "iphone"
         case .browserFrame: "macwindow"
+        case .dottedFrame: "rectangle.dashed"
         default: "rectangle.on.rectangle"
         }
     }
@@ -365,9 +416,9 @@ struct WireframeBoardView: View {
         .accessibilityLabel("Element name")
     }
 
-    private func performExport(_ action: WireframeExportAction, canvasSize: CGSize) {
+    private func performExport(_ action: WireframeExportAction) {
         model.finishPendingName()
-        exportFeedback = onExport(action, canvasSize, colorScheme)
+        exportFeedback = onExport(action, colorScheme)
         feedbackTask?.cancel()
         feedbackTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(2.6))
@@ -398,11 +449,7 @@ struct WireframeArtworkView: View {
                 context.stroke(
                     path(for: element.geometry),
                     with: .color(isBeingNamed ? palette.aqua : palette.ink.opacity(0.82)),
-                    style: StrokeStyle(
-                        lineWidth: isBeingNamed ? 2.25 : 1.65,
-                        lineCap: .round,
-                        lineJoin: .round
-                    )
+                    style: strokeStyle(for: element.geometry, isBeingNamed: isBeingNamed)
                 )
 
                 if !element.name.isEmpty, !isBeingNamed {
@@ -511,6 +558,13 @@ struct WireframeArtworkView: View {
                 style: guideStyle
             )
 
+        case .dottedFrame:
+            drawPreview(
+                WireframeGeometryFactory.dottedFrame(from: first, to: previewPoint),
+                in: &context,
+                style: guideStyle
+            )
+
         case .rename:
             break
         }
@@ -584,7 +638,31 @@ struct WireframeArtworkView: View {
 
         case let .browserFrame(rect):
             return browserFramePath(in: rect)
+
+        case let .dottedFrame(rect):
+            return Path(
+                roundedRect: rect,
+                cornerRadius: min(10, min(rect.width, rect.height) * 0.08)
+            )
         }
+    }
+
+    private func strokeStyle(
+        for geometry: WireframeGeometry,
+        isBeingNamed: Bool
+    ) -> StrokeStyle {
+        let isDottedFrame: Bool
+        if case .dottedFrame = geometry {
+            isDottedFrame = true
+        } else {
+            isDottedFrame = false
+        }
+        return StrokeStyle(
+            lineWidth: isBeingNamed ? 2.25 : 1.65,
+            lineCap: .round,
+            lineJoin: .round,
+            dash: isDottedFrame ? [1, 6] : []
+        )
     }
 
     private func mobileFramePath(in rect: CGRect) -> Path {

@@ -9,6 +9,7 @@ enum WireframeTool: String, CaseIterable, Identifiable {
     case rename
     case mobileFrame
     case browserFrame
+    case dottedFrame
 
     var id: String { rawValue }
 
@@ -18,9 +19,10 @@ enum WireframeTool: String, CaseIterable, Identifiable {
         case .circle: "Circle"
         case .ellipse: "Ellipse"
         case .pen: "Pen"
-        case .rename: "Rename"
+        case .rename: "Label"
         case .mobileFrame: "Mobile frame"
         case .browserFrame: "Browser window"
+        case .dottedFrame: "Dotted frame"
         }
     }
 
@@ -33,6 +35,7 @@ enum WireframeTool: String, CaseIterable, Identifiable {
         case .rename: "character.cursor.ibeam"
         case .mobileFrame: "iphone"
         case .browserFrame: "macwindow"
+        case .dottedFrame: "rectangle.dashed"
         }
     }
 
@@ -42,9 +45,10 @@ enum WireframeTool: String, CaseIterable, Identifiable {
         case .circle: "Click the center, then the edge"
         case .ellipse: "Click both ends of the major axis, then set the width"
         case .pen: "Drag to draw a freeform element"
-        case .rename: "Click an element border to rename it"
+        case .rename: "Click an element border to add or change its label"
         case .mobileFrame: "Click two corners for a mobile screen"
         case .browserFrame: "Click two corners for a browser window"
+        case .dottedFrame: "Click two corners for a dotted container"
         }
     }
 }
@@ -61,6 +65,7 @@ enum WireframeGeometry: Equatable {
     case stroke([CGPoint])
     case mobileFrame(CGRect)
     case browserFrame(CGRect)
+    case dottedFrame(CGRect)
 
     var bounds: CGRect {
         switch self {
@@ -97,7 +102,9 @@ enum WireframeGeometry: Equatable {
             ) { bounds, point in
                 bounds.union(CGRect(origin: point, size: .zero))
             }
-        case let .mobileFrame(rect), let .browserFrame(rect):
+        case let .mobileFrame(rect),
+             let .browserFrame(rect),
+             let .dottedFrame(rect):
             return rect
         }
     }
@@ -106,11 +113,39 @@ enum WireframeGeometry: Equatable {
         CGPoint(x: bounds.midX, y: bounds.midY)
     }
 
+    func offsetBy(dx: CGFloat, dy: CGFloat) -> WireframeGeometry {
+        switch self {
+        case let .rectangle(rect):
+            return .rectangle(rect.offsetBy(dx: dx, dy: dy))
+        case let .circle(center, radius):
+            return .circle(
+                center: CGPoint(x: center.x + dx, y: center.y + dy),
+                radius: radius
+            )
+        case let .ellipse(center, majorRadius, minorRadius, rotation):
+            return .ellipse(
+                center: CGPoint(x: center.x + dx, y: center.y + dy),
+                majorRadius: majorRadius,
+                minorRadius: minorRadius,
+                rotation: rotation
+            )
+        case let .stroke(points):
+            return .stroke(points.map { CGPoint(x: $0.x + dx, y: $0.y + dy) })
+        case let .mobileFrame(rect):
+            return .mobileFrame(rect.offsetBy(dx: dx, dy: dy))
+        case let .browserFrame(rect):
+            return .browserFrame(rect.offsetBy(dx: dx, dy: dy))
+        case let .dottedFrame(rect):
+            return .dottedFrame(rect.offsetBy(dx: dx, dy: dy))
+        }
+    }
+
     func borderDistance(to point: CGPoint) -> CGFloat {
         switch self {
         case let .rectangle(rect),
              let .mobileFrame(rect),
-             let .browserFrame(rect):
+             let .browserFrame(rect),
+             let .dottedFrame(rect):
             let clampedX = min(max(point.x, rect.minX), rect.maxX)
             let clampedY = min(max(point.y, rect.minY), rect.maxY)
             if rect.contains(point) {
@@ -255,6 +290,10 @@ enum WireframeGeometryFactory {
         .browserFrame(rectangleBounds(from: first, to: second))
     }
 
+    static func dottedFrame(from first: CGPoint, to second: CGPoint) -> WireframeGeometry {
+        .dottedFrame(rectangleBounds(from: first, to: second))
+    }
+
     private static func rectangleBounds(from first: CGPoint, to second: CGPoint) -> CGRect {
         CGRect(
             x: min(first.x, second.x),
@@ -274,28 +313,38 @@ final class WireframeCanvasModel: ObservableObject {
     @Published var namingText = ""
     @Published private(set) var namingSkipIsArmed = false
     @Published private(set) var contentRevision = 0
+    @Published private(set) var isPinned = false
 
     var canUndo: Bool {
         !elements.isEmpty
     }
 
+    var canClearAll: Bool {
+        !elements.isEmpty || !draftPoints.isEmpty
+    }
+
     var statusText: String {
         if namingElementID != nil {
             if namingSkipIsArmed && namingText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return "Press Return again to leave this element unnamed"
+                return "Label · Press Return again to leave this element unnamed"
             }
-            return "Type a label in gold · Return saves · Return twice skips"
+            return "Label · Type in gold · Return saves · Return twice skips"
         }
 
         switch (selectedTool, draftPoints.count) {
-        case (.rectangle, 1): return "Click the opposite corner"
-        case (.circle, 1): return "Click the circle edge"
-        case (.ellipse, 1): return "Click the other end of the major axis"
-        case (.ellipse, 2): return "Click to set the minor radius"
-        case (.mobileFrame, 1): return "Click the opposite corner of the mobile screen"
-        case (.browserFrame, 1): return "Click the opposite corner of the browser window"
-        default: return selectedTool.instruction
+        case (.rectangle, 1): return "Rectangle · Click the opposite corner"
+        case (.circle, 1): return "Circle · Click the circle edge"
+        case (.ellipse, 1): return "Ellipse · Click the other end of the major axis"
+        case (.ellipse, 2): return "Ellipse · Click to set the minor radius"
+        case (.mobileFrame, 1): return "Mobile frame · Click the opposite corner"
+        case (.browserFrame, 1): return "Browser window · Click the opposite corner"
+        case (.dottedFrame, 1): return "Dotted frame · Click the opposite corner"
+        default: return "\(selectedTool.title) · \(selectedTool.instruction)"
         }
+    }
+
+    func togglePin() {
+        isPinned.toggle()
     }
 
     func selectTool(_ tool: WireframeTool) {
@@ -357,14 +406,23 @@ final class WireframeCanvasModel: ObservableObject {
             }) else { return }
             beginNaming(element)
 
-        case .mobileFrame, .browserFrame:
+        case .mobileFrame, .browserFrame, .dottedFrame:
             if let first = draftPoints.first {
-                let geometry = selectedTool == .mobileFrame
-                    ? WireframeGeometryFactory.mobileFrame(from: first, to: point)
-                    : WireframeGeometryFactory.browserFrame(from: first, to: point)
-                let minimumSize = selectedTool == .mobileFrame
-                    ? CGSize(width: 48, height: 80)
-                    : CGSize(width: 100, height: 70)
+                let geometry: WireframeGeometry
+                let minimumSize: CGSize
+                switch selectedTool {
+                case .mobileFrame:
+                    geometry = WireframeGeometryFactory.mobileFrame(from: first, to: point)
+                    minimumSize = CGSize(width: 48, height: 80)
+                case .browserFrame:
+                    geometry = WireframeGeometryFactory.browserFrame(from: first, to: point)
+                    minimumSize = CGSize(width: 100, height: 70)
+                case .dottedFrame:
+                    geometry = WireframeGeometryFactory.dottedFrame(from: first, to: point)
+                    minimumSize = CGSize(width: 40, height: 40)
+                default:
+                    return
+                }
                 guard geometry.bounds.width >= minimumSize.width,
                       geometry.bounds.height >= minimumSize.height
                 else { return }
@@ -432,6 +490,16 @@ final class WireframeCanvasModel: ObservableObject {
             finishNaming()
         }
         draftPoints = []
+    }
+
+    func clearAll() {
+        let hadElements = !elements.isEmpty
+        elements.removeAll()
+        draftPoints = []
+        finishNaming()
+        if hadElements {
+            contentRevision += 1
+        }
     }
 
     func finishPendingName() {

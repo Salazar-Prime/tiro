@@ -178,9 +178,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
                 pathWrapper: { [weak self] in
                     self?.appModel.screenshotPathWrapper ?? .defaultValue
                 },
-                appendImageToTranscript: { [weak self] fileURL in
-                    self?.voiceController?.appendImageToCurrentTranscript(fileURL) ?? false
-                },
                 onDismiss: { [weak self] in
                     self?.wireframeDidDismiss()
                 }
@@ -251,8 +248,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
         let wireframeItem = NSMenuItem(
             title: "Wireframe Board…",
             action: #selector(openWireframeFromMenu),
-            keyEquivalent: ""
+            keyEquivalent: "w"
         )
+        wireframeItem.keyEquivalentModifierMask = [.command, .shift]
         wireframeItem.image = NSImage(
             systemSymbolName: "square.grid.3x3",
             accessibilityDescription: "Open Wireframe Board"

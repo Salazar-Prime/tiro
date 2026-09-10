@@ -5,33 +5,40 @@ import SwiftUI
 final class WireframeExporter {
     private struct CachedExport {
         let revision: Int
-        let size: CGSize
         let isDark: Bool
         let fileURL: URL
     }
 
     private let pathWrapper: () -> ScreenshotPathWrapper
-    private let appendImageToTranscript: (URL) -> Bool
     private let fileURLProvider: () throws -> URL
+    private let readClipboardText: () -> String?
+    private let writeClipboardText: (String) -> Bool
     private var cachedExport: CachedExport?
 
     init(
         pathWrapper: @escaping () -> ScreenshotPathWrapper,
-        appendImageToTranscript: @escaping (URL) -> Bool,
         fileURLProvider: @escaping () throws -> URL = {
             try ScreenshotStorage.nextWireframeFileURL()
+        },
+        readClipboardText: @escaping () -> String? = {
+            NSPasteboard.general.string(forType: .string)
+        },
+        writeClipboardText: @escaping (String) -> Bool = { value in
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            return pasteboard.setString(value, forType: .string)
         }
     ) {
         self.pathWrapper = pathWrapper
-        self.appendImageToTranscript = appendImageToTranscript
         self.fileURLProvider = fileURLProvider
+        self.readClipboardText = readClipboardText
+        self.writeClipboardText = writeClipboardText
     }
 
     func perform(
         _ action: WireframeExportAction,
         elements: [WireframeElement],
         revision: Int,
-        size: CGSize,
         colorScheme: ColorScheme
     ) -> WireframeExportFeedback {
         guard !elements.isEmpty else {
@@ -45,7 +52,6 @@ final class WireframeExporter {
             let fileURL = try exportedFileURL(
                 elements: elements,
                 revision: revision,
-                size: size,
                 colorScheme: colorScheme
             )
 
@@ -61,9 +67,7 @@ final class WireframeExporter {
                     for: fileURL,
                     wrapper: pathWrapper()
                 )
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                guard pasteboard.setString(link, forType: .string) else {
+                guard writeClipboardText(link) else {
                     return WireframeExportFeedback(
                         message: "Image saved · link couldn’t be copied",
                         isError: true
@@ -75,14 +79,19 @@ final class WireframeExporter {
                 )
 
             case .appendLink:
-                guard appendImageToTranscript(fileURL) else {
+                let link = ScreenshotLinkFormatter.appending(
+                    [fileURL],
+                    to: readClipboardText() ?? "",
+                    wrapper: pathWrapper()
+                )
+                guard writeClipboardText(link) else {
                     return WireframeExportFeedback(
-                        message: "Saved · start voice typing to append",
+                        message: "Image saved · clipboard couldn’t be updated",
                         isError: true
                     )
                 }
                 return WireframeExportFeedback(
-                    message: "Saved and added to this transcript",
+                    message: "Saved and appended to clipboard",
                     isError: false
                 )
             }
@@ -97,20 +106,19 @@ final class WireframeExporter {
     private func exportedFileURL(
         elements: [WireframeElement],
         revision: Int,
-        size: CGSize,
         colorScheme: ColorScheme
     ) throws -> URL {
         let isDark = colorScheme == .dark
         if let cachedExport,
            cachedExport.revision == revision,
-           cachedExport.size == size,
            cachedExport.isDark == isDark,
            FileManager.default.fileExists(atPath: cachedExport.fileURL.path) {
             return cachedExport.fileURL
         }
 
+        let layout = WireframeExportLayout(elements: elements)
         let content = WireframeArtworkView(
-            elements: elements,
+            elements: layout.translatedElements,
             selectedTool: .rectangle,
             draftPoints: [],
             namingElementID: nil,
@@ -118,7 +126,7 @@ final class WireframeExporter {
             showsDraft: false
         )
         .environment(\.colorScheme, colorScheme)
-        .frame(width: size.width, height: size.height)
+        .frame(width: layout.outputSize.width, height: layout.outputSize.height)
 
         let renderer = ImageRenderer(content: content)
         renderer.scale = 2
@@ -132,11 +140,71 @@ final class WireframeExporter {
         try pngData.write(to: fileURL, options: .atomic)
         cachedExport = CachedExport(
             revision: revision,
-            size: size,
             isDark: isDark,
             fileURL: fileURL
         )
         return fileURL
+    }
+}
+
+struct WireframeExportLayout: Equatable {
+    static let padding: CGFloat = 18
+
+    let sourceRect: CGRect
+    let translatedElements: [WireframeElement]
+
+    var outputSize: CGSize {
+        sourceRect.size
+    }
+
+    init(elements: [WireframeElement]) {
+        guard let firstElement = elements.first else {
+            sourceRect = .zero
+            translatedElements = []
+            return
+        }
+
+        let contentBounds = elements.dropFirst().reduce(Self.visualBounds(for: firstElement)) {
+            $0.union(Self.visualBounds(for: $1))
+        }
+        let paddedBounds = contentBounds.insetBy(
+            dx: -Self.padding,
+            dy: -Self.padding
+        )
+        let side = max(paddedBounds.width, paddedBounds.height)
+        let square = CGRect(
+            x: paddedBounds.midX - side / 2,
+            y: paddedBounds.midY - side / 2,
+            width: side,
+            height: side
+        )
+        sourceRect = square
+        translatedElements = elements.map { element in
+            WireframeElement(
+                id: element.id,
+                geometry: element.geometry.offsetBy(
+                    dx: -square.minX,
+                    dy: -square.minY
+                ),
+                name: element.name
+            )
+        }
+    }
+
+    private static func visualBounds(for element: WireframeElement) -> CGRect {
+        guard !element.name.isEmpty else { return element.geometry.bounds }
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 12, weight: .semibold)
+        ]
+        let textSize = (element.name as NSString).size(withAttributes: attributes)
+        let anchor = element.geometry.labelAnchor
+        let labelBounds = CGRect(
+            x: anchor.x - textSize.width / 2 - 3,
+            y: anchor.y - textSize.height / 2 - 2,
+            width: textSize.width + 6,
+            height: textSize.height + 4
+        )
+        return element.geometry.bounds.union(labelBounds)
     }
 }
 

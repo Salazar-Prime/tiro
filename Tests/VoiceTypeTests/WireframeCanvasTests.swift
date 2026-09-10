@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import SwiftUI
@@ -53,15 +54,17 @@ final class WireframeGeometryTests: XCTestCase {
         XCTAssertEqual(frame.midY, visibleFrame.midY, accuracy: 0.001)
     }
 
-    func testMobileAndBrowserFramesUseTheChosenCorners() {
+    func testMobileBrowserAndDottedFramesUseTheChosenCorners() {
         let first = CGPoint(x: 240, y: 320)
         let second = CGPoint(x: 40, y: 80)
 
         let mobile = WireframeGeometryFactory.mobileFrame(from: first, to: second)
         let browser = WireframeGeometryFactory.browserFrame(from: first, to: second)
+        let dotted = WireframeGeometryFactory.dottedFrame(from: first, to: second)
 
         XCTAssertEqual(mobile.bounds, CGRect(x: 40, y: 80, width: 200, height: 240))
         XCTAssertEqual(browser.bounds, CGRect(x: 40, y: 80, width: 200, height: 240))
+        XCTAssertEqual(dotted.bounds, CGRect(x: 40, y: 80, width: 200, height: 240))
     }
 }
 
@@ -155,6 +158,50 @@ final class WireframeCanvasModelTests: XCTestCase {
         XCTAssertEqual(model.namingElementID, model.elements[0].id)
     }
 
+    func testDottedFrameIsCreatedAndItsToolNameIsVisible() {
+        let model = WireframeCanvasModel()
+        model.selectTool(.dottedFrame)
+
+        XCTAssertTrue(model.statusText.hasPrefix("Dotted frame ·"))
+        model.handleClick(at: CGPoint(x: 40, y: 60))
+        model.handleClick(at: CGPoint(x: 160, y: 180))
+
+        XCTAssertEqual(model.elements.count, 1)
+        guard case .dottedFrame = model.elements[0].geometry else {
+            return XCTFail("Expected a dotted frame")
+        }
+    }
+
+    func testPinCanKeepBoardVisibleAndClearAllPreservesPin() {
+        let model = WireframeCanvasModel()
+        model.togglePin()
+        model.handleClick(at: CGPoint(x: 20, y: 30))
+        model.handleClick(at: CGPoint(x: 120, y: 90))
+
+        model.clearAll()
+
+        XCTAssertTrue(model.isPinned)
+        XCTAssertTrue(model.elements.isEmpty)
+        XCTAssertTrue(model.draftPoints.isEmpty)
+        XCTAssertNil(model.namingElementID)
+        XCTAssertFalse(model.canClearAll)
+    }
+
+    func testExportLayoutIsATightSquareAroundAllElements() {
+        let elements = [
+            WireframeElement(geometry: .rectangle(CGRect(x: 40, y: 80, width: 200, height: 100))),
+            WireframeElement(geometry: .circle(center: CGPoint(x: 300, y: 150), radius: 20))
+        ]
+
+        let layout = WireframeExportLayout(elements: elements)
+
+        XCTAssertEqual(layout.sourceRect.width, layout.sourceRect.height, accuracy: 0.001)
+        XCTAssertTrue(layout.sourceRect.contains(elements[0].geometry.bounds))
+        XCTAssertTrue(layout.sourceRect.contains(elements[1].geometry.bounds))
+        XCTAssertEqual(layout.translatedElements.count, 2)
+        XCTAssertEqual(layout.translatedElements[0].geometry.bounds.minX, WireframeExportLayout.padding)
+    }
+
     func testExporterWritesPNGAndReusesUnchangedImage() throws {
         let outputURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("tiro-wireframe-export-\(UUID().uuidString).png")
@@ -162,7 +209,6 @@ final class WireframeCanvasModelTests: XCTestCase {
         var fileURLRequestCount = 0
         let exporter = WireframeExporter(
             pathWrapper: { .defaultValue },
-            appendImageToTranscript: { _ in false },
             fileURLProvider: {
                 fileURLRequestCount += 1
                 return outputURL
@@ -179,21 +225,55 @@ final class WireframeCanvasModelTests: XCTestCase {
             .save,
             elements: elements,
             revision: 1,
-            size: CGSize(width: 320, height: 320),
             colorScheme: .light
         )
         let secondResult = exporter.perform(
             .save,
             elements: elements,
             revision: 1,
-            size: CGSize(width: 320, height: 320),
             colorScheme: .light
         )
 
         let data = try Data(contentsOf: outputURL)
+        let bitmap = try XCTUnwrap(NSBitmapImageRep(data: data))
         XCTAssertEqual(Array(data.prefix(8)), [137, 80, 78, 71, 13, 10, 26, 10])
+        XCTAssertEqual(bitmap.pixelsWide, bitmap.pixelsHigh)
+        XCTAssertEqual(bitmap.pixelsWide, 552)
         XCTAssertEqual(firstResult.message, "Saved in Tiro screenshots")
         XCTAssertEqual(secondResult.message, "Saved in Tiro screenshots")
         XCTAssertEqual(fileURLRequestCount, 1)
+    }
+
+    func testAppendSavesAndAddsLinkToCurrentClipboardText() throws {
+        let outputURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tiro-wireframe-append-\(UUID().uuidString).png")
+        defer { try? FileManager.default.removeItem(at: outputURL) }
+        var clipboardText = "Existing clipboard note"
+        let exporter = WireframeExporter(
+            pathWrapper: {
+                ScreenshotPathWrapper(isEnabled: false, prefix: "", suffix: "")
+            },
+            fileURLProvider: { outputURL },
+            readClipboardText: { clipboardText },
+            writeClipboardText: { value in
+                clipboardText = value
+                return true
+            }
+        )
+
+        let result = exporter.perform(
+            .appendLink,
+            elements: [
+                WireframeElement(
+                    geometry: .rectangle(CGRect(x: 10, y: 10, width: 80, height: 40))
+                )
+            ],
+            revision: 1,
+            colorScheme: .light
+        )
+
+        XCTAssertEqual(result.message, "Saved and appended to clipboard")
+        XCTAssertEqual(clipboardText, "Existing clipboard note\n\n\(outputURL.path)")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: outputURL.path))
     }
 }

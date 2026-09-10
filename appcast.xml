@@ -3,22 +3,22 @@
     <channel>
         <title>Tiro</title>
         <item>
-            <title>0.5.0-beta.6</title>
-            <pubDate>Wed, 09 Sep 2026 20:25:34 -0400</pubDate>
+            <title>0.5.0-beta.7</title>
+            <pubDate>Thu, 10 Sep 2026 13:07:34 -0400</pubDate>
             <link>https://github.com/Salazar-Prime/tiro</link>
-            <sparkle:version>16</sparkle:version>
-            <sparkle:shortVersionString>0.5.0-beta.6</sparkle:shortVersionString>
+            <sparkle:version>17</sparkle:version>
+            <sparkle:shortVersionString>0.5.0-beta.7</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Tiro public beta 6
+            <description sparkle:format="markdown"><![CDATA[# Tiro public beta 7
 
-This beta adds a built-in wireframe board for sketching and sharing interface ideas.
+This beta makes the Wireframe Board easier to keep nearby and share from.
 
-- Draw common shapes, freehand marks, mobile frames, browser windows, and inline labels on a dotted canvas.
-- Save a clean PNG, copy its formatted local link, or append it to an active voice transcript.
-- Rename elements from their borders, with edits saved automatically when you click away.
+- Pin the board when you want it to stay visible, or let it hide automatically when focus moves away.
+- Export a tight square around the artwork, or append its saved path to the text already on your clipboard.
+- Use distinct mobile, browser, and dotted frames, visible tool labels, Clear all, and the new Wireframe Board menu shortcut.
 ]]></description>
-            <enclosure url="https://github.com/Salazar-Prime/tiro/releases/download/v0.5.0-beta.6/Tiro-0.5.0-beta.6.zip" length="5355812" type="application/octet-stream" sparkle:edSignature="fhbBhnnm14/jy5jWX8lIx9LQA5SSJCnPBwqMJSIE0g8rkSEDjXup8C4Wz03ELXrilVkWpbc+82gd25o1ZW95Bg=="/>
+            <enclosure url="https://github.com/Salazar-Prime/tiro/releases/download/v0.5.0-beta.7/Tiro-0.5.0-beta.7.zip" length="5374438" type="application/octet-stream" sparkle:edSignature="y+DJ8rqxAqxLsYo/BYCEgNMNfqLx00xmg7L7EK/uF8MHyJzZEfkS+cLqI8trnpYok/Upe/+SMP8wp4pYI1TQCA=="/>
         </item>
     </channel>
 </rss>
