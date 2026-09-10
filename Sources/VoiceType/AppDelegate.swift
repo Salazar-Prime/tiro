@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
     private var screenshotController: ScreenshotCaptureController?
     private var hotkeyMonitor: HotkeyMonitor?
     private var settingsWindowController: SettingsWindowController?
+    private var wireframeWindowController: WireframeWindowController?
     private var statusItem: NSStatusItem?
     private var updateMenuItem: NSMenuItem?
     private var pasteHintMenuItem: NSMenuItem?
@@ -134,6 +135,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
         openHistory()
     }
 
+    @objc private func openWireframeFromMenu() {
+        openWireframe()
+    }
+
     @objc private func captureUsableScreenFromMenu() {
         appModel.captureUsableScreen()
     }
@@ -167,6 +172,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
         openSettings(page: .history)
     }
 
+    private func openWireframe() {
+        if wireframeWindowController == nil {
+            wireframeWindowController = WireframeWindowController(
+                pathWrapper: { [weak self] in
+                    self?.appModel.screenshotPathWrapper ?? .defaultValue
+                },
+                appendImageToTranscript: { [weak self] fileURL in
+                    self?.voiceController?.appendImageToCurrentTranscript(fileURL) ?? false
+                },
+                onDismiss: { [weak self] in
+                    self?.wireframeDidDismiss()
+                }
+            )
+        }
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        wireframeWindowController?.show()
+    }
+
+    private func wireframeDidDismiss() {
+        let settingsIsOpen = settingsWindowController?.window.map {
+            $0.isVisible || $0.isMiniaturized
+        } ?? false
+        if !settingsIsOpen {
+            NSApp.setActivationPolicy(.accessory)
+        }
+    }
+
     func windowWillClose(_ notification: Notification) {
         guard let closingWindow = notification.object as? NSWindow else { return }
         let utilityWindows = [settingsWindowController?.window].compactMap { $0 }
@@ -176,7 +209,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
         let hasAnotherOpenWindow = utilityWindows.contains {
             $0 !== closingWindow && ($0.isVisible || $0.isMiniaturized)
         }
-        if !hasAnotherOpenWindow {
+        if !hasAnotherOpenWindow, wireframeWindowController?.isVisible != true {
             NSApp.setActivationPolicy(.accessory)
         }
     }
@@ -213,6 +246,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
         }
         heading.isEnabled = false
         menu.addItem(heading)
+        menu.addItem(.separator())
+
+        let wireframeItem = NSMenuItem(
+            title: "Wireframe Board…",
+            action: #selector(openWireframeFromMenu),
+            keyEquivalent: ""
+        )
+        wireframeItem.image = NSImage(
+            systemSymbolName: "square.grid.3x3",
+            accessibilityDescription: "Open Wireframe Board"
+        )
+        wireframeItem.target = self
+        menu.addItem(wireframeItem)
         menu.addItem(.separator())
 
         let historyItem = NSMenuItem(

@@ -3,22 +3,22 @@
     <channel>
         <title>Tiro</title>
         <item>
-            <title>0.5.0-beta.5</title>
-            <pubDate>Sun, 16 Aug 2026 14:29:21 -0400</pubDate>
+            <title>0.5.0-beta.6</title>
+            <pubDate>Wed, 09 Sep 2026 20:25:34 -0400</pubDate>
             <link>https://github.com/Salazar-Prime/tiro</link>
-            <sparkle:version>15</sparkle:version>
-            <sparkle:shortVersionString>0.5.0-beta.5</sparkle:shortVersionString>
+            <sparkle:version>16</sparkle:version>
+            <sparkle:shortVersionString>0.5.0-beta.6</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Tiro public beta 5
+            <description sparkle:format="markdown"><![CDATA[# Tiro public beta 6
 
-This beta adds screenshot capture, customizable shortcuts, and a refreshed interface.
+This beta adds a built-in wireframe board for sketching and sharing interface ideas.
 
-- Capture the usable screen or a dragged selection, then paste it or attach it to a transcript.
-- Customize voice typing, paste, screenshot, and history shortcuts in Settings.
-- Browse history inside the redesigned Settings window with updated Tiro branding.
+- Draw common shapes, freehand marks, mobile frames, browser windows, and inline labels on a dotted canvas.
+- Save a clean PNG, copy its formatted local link, or append it to an active voice transcript.
+- Rename elements from their borders, with edits saved automatically when you click away.
 ]]></description>
-            <enclosure url="https://github.com/Salazar-Prime/tiro/releases/download/v0.5.0-beta.5/Tiro-0.5.0-beta.5.zip" length="5231607" type="application/octet-stream" sparkle:edSignature="Z/5fQ2begiSXZWlAYXuqYEVmwrsXNpGD59u/sN46QxRJfpEcg/QGlMH4XH00k3x0f+uilpJQ+UeskphGzYVAAA=="/>
+            <enclosure url="https://github.com/Salazar-Prime/tiro/releases/download/v0.5.0-beta.6/Tiro-0.5.0-beta.6.zip" length="5355812" type="application/octet-stream" sparkle:edSignature="fhbBhnnm14/jy5jWX8lIx9LQA5SSJCnPBwqMJSIE0g8rkSEDjXup8C4Wz03ELXrilVkWpbc+82gd25o1ZW95Bg=="/>
         </item>
     </channel>
 </rss>

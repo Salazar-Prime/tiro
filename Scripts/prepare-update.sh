@@ -9,7 +9,7 @@ PUBLISH_DIR="$PROJECT_DIR/dist/publish"
 INFO_PLIST="$PROJECT_DIR/Resources/Info.plist"
 SPARKLE_TOOLS="$PROJECT_DIR/.build/artifacts/sparkle/Sparkle/bin"
 RELEASE_NOTES="$PROJECT_DIR/RELEASE_NOTES.md"
-PREPARE_BRANCH=${TIRO_PREPARE_BRANCH:-${VOICE_TYPE_PREPARE_BRANCH:-beta}}
+PREPARE_BRANCH=${TIRO_PREPARE_BRANCH:-${VOICE_TYPE_PREPARE_BRANCH:-main}}
 PUBLISH_BRANCH=${TIRO_PUBLISH_BRANCH:-${VOICE_TYPE_PUBLISH_BRANCH:-main}}
 
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO_PLIST")
@@ -68,7 +68,7 @@ echo "  $PUBLISH_DIR/$ARCHIVE_NAME"
 echo "  $PUBLISH_DIR/$DMG_NAME"
 echo "  $PROJECT_DIR/appcast.xml"
 echo
-echo "After verifying these files and committing them on $PREPARE_BRANCH, create the single public release snapshot:"
+echo "After verifying these files, commit the release state on $PREPARE_BRANCH and create its version tag:"
 echo "  ./Scripts/promote-release.sh"
 echo "Then push only $PUBLISH_BRANCH and $TAG, and publish the prerelease:"
 echo "  git push origin $PUBLISH_BRANCH refs/tags/$TAG"

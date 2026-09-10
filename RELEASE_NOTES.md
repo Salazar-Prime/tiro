@@ -1,7 +1,7 @@
-# Tiro public beta 5
+# Tiro public beta 6
 
-This beta adds screenshot capture, customizable shortcuts, and a refreshed interface.
+This beta adds a built-in wireframe board for sketching and sharing interface ideas.
 
-- Capture the usable screen or a dragged selection, then paste it or attach it to a transcript.
-- Customize voice typing, paste, screenshot, and history shortcuts in Settings.
-- Browse history inside the redesigned Settings window with updated Tiro branding.
+- Draw common shapes, freehand marks, mobile frames, browser windows, and inline labels on a dotted canvas.
+- Save a clean PNG, copy its formatted local link, or append it to an active voice transcript.
+- Rename elements from their borders, with edits saved automatically when you click away.

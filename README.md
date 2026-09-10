@@ -26,6 +26,8 @@ Tiro can also capture the usable screen or a dragged selection from its menu-bar
 
 Screenshot paths are surrounded with single quotes by default. The Screenshots settings page can disable wrapping or replace the text before and after each path with any custom text.
 
+The **Wireframe Board…** menu item opens a right-side canvas for sketching interface ideas. Draw rectangles, circles, ellipses, freehand marks, mobile frames, and browser windows on a dot grid, then label each element in place. The board can save a clean PNG in `Pictures/Tiro screenshots`, copy its formatted local path, or append the image link to a voice transcript while recording.
+
 ## See it in action
 
 <p align="center">
@@ -54,7 +56,7 @@ You need macOS 14 or newer plus Microphone and Accessibility permission. Screens
 - **OpenAI** uses `gpt-4o-mini-transcribe` and requires an API key with API billing enabled. The key stays in macOS Keychain.
 - **On-device** uses [whisper.cpp](https://github.com/ggml-org/whisper.cpp) and a one-time, roughly 60 MB English model download. It does not require an API key.
 
-Public beta builds are Sparkle-signed but not yet Apple-notarized. On first launch, macOS may require you to Control-click Tiro and choose **Open**.
+Public beta builds are code-signed with Tiro’s project-local identity and Sparkle updates are separately signed, but the app is not Apple-notarized or signed with a trusted Developer ID. Gatekeeper therefore does not accept it as a standard identified-developer download. On first launch, macOS may require you to Control-click Tiro and choose **Open**.
 
 When installing from the DMG, drag `Tiro.app` to the Applications shortcut, then launch it from `/Applications`.
 
@@ -84,7 +86,8 @@ Move `Tiro.app` to `/Applications` before granting permissions so macOS can keep
 - Tiro does not send analytics, telemetry, crash reports, or application logs. Limited operational diagnostics stay in macOS's local unified log and do not include audio or transcript content.
 - Transcript history stays on this Mac and can be searched, deleted, or cleared at any time.
 - Screenshots are taken only when you choose a capture action and remain in your local `Pictures/Tiro screenshots` folder.
-- Any temporary pasteboard content is restored and marked to keep it out of compatible clipboard-history apps.
+- Wireframe Board drawings stay in memory while Tiro is running. Exported wireframes remain as PNG files in `Pictures/Tiro screenshots`; Tiro does not upload them.
+- **Copy Link** places the exported wireframe’s formatted local path on the clipboard until you replace it. Other temporary pasteboard content is restored and marked to keep it out of compatible clipboard-history apps.
 - Sparkle contacts Tiro's GitHub-hosted update feed to check for new releases.
 
 ## Feature checklist
@@ -94,6 +97,7 @@ Move `Tiro.app` to `/Applications` before granting permissions so macOS can keep
 - [x] Capture the visible screen without the menu bar or Dock, or drag a selection
 - [x] Customize voice, paste, and screenshot shortcuts from Settings
 - [x] Open searchable transcript history inside Settings or with a custom shortcut
+- [x] Sketch labeled UI wireframes and export or attach them as local PNG files
 
 ## Development
 

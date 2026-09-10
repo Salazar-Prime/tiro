@@ -42,11 +42,19 @@ enum ScreenshotStorage {
     }
 
     static func nextFileURL(at date: Date = Date()) throws -> URL {
+        try nextFileURL(named: "Tiro Screenshot", at: date)
+    }
+
+    static func nextWireframeFileURL(at date: Date = Date()) throws -> URL {
+        try nextFileURL(named: "Tiro Wireframe", at: date)
+    }
+
+    private static func nextFileURL(named prefix: String, at date: Date) throws -> URL {
         let directory = try prepareDirectory()
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd 'at' HH.mm.ss.SSS"
-        let filename = "Tiro Screenshot \(formatter.string(from: date)).png"
+        let filename = "\(prefix) \(formatter.string(from: date)).png"
         return directory.appendingPathComponent(filename, isDirectory: false)
     }
 }
