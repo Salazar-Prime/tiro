@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
     private var statusItem: NSStatusItem?
     private var updateMenuItem: NSMenuItem?
     private var pasteHintMenuItem: NSMenuItem?
+    private var wireframeMenuItem: NSMenuItem?
     private var historyMenuItem: NSMenuItem?
     private var captureScreenMenuItem: NSMenuItem?
     private var captureSelectionMenuItem: NSMenuItem?
@@ -54,6 +55,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
             },
             onPaste: { [weak voiceController] in
                 voiceController?.pasteLastTranscript()
+            },
+            onOpenWireframe: { [weak self] in
+                self?.openWireframe()
             },
             onOpenHistory: { [weak self] in
                 self?.openHistory()
@@ -248,15 +252,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
         let wireframeItem = NSMenuItem(
             title: "Wireframe Board…",
             action: #selector(openWireframeFromMenu),
-            keyEquivalent: "w"
+            keyEquivalent: ""
         )
-        wireframeItem.keyEquivalentModifierMask = [.command, .shift]
         wireframeItem.image = NSImage(
             systemSymbolName: "square.grid.3x3",
             accessibilityDescription: "Open Wireframe Board"
         )
         wireframeItem.target = self
         menu.addItem(wireframeItem)
+        wireframeMenuItem = wireframeItem
         menu.addItem(.separator())
 
         let historyItem = NSMenuItem(
@@ -346,6 +350,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @pre
     private func updateShortcutMenuItems(_ shortcuts: ShortcutConfiguration) {
         let pasteLabel = shortcuts.pasteLast?.displayName ?? "Not set"
         pasteHintMenuItem?.title = "\(pasteLabel)  Paste last capture"
+        applyMenuShortcut(shortcuts.openWireframe, to: wireframeMenuItem)
         applyMenuShortcut(shortcuts.openHistory, to: historyMenuItem)
         applyMenuShortcut(shortcuts.captureScreen, to: captureScreenMenuItem)
         applyMenuShortcut(shortcuts.captureSelection, to: captureSelectionMenuItem)

@@ -4,6 +4,7 @@ import Foundation
 
 enum ShortcutAction: String, CaseIterable, Identifiable {
     case voiceTyping
+    case openWireframe
     case pasteLast
     case openHistory
     case captureScreen
@@ -15,6 +16,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .voiceTyping: "Voice typing"
+        case .openWireframe: "Open Wireframe Board"
         case .pasteLast: "Paste last capture"
         case .openHistory: "Open transcript history"
         case .captureScreen: "Capture visible screen"
@@ -24,7 +26,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     }
 
     var allowsClearing: Bool {
-        self != .voiceTyping
+        self != .voiceTyping && self != .openWireframe
     }
 
     var usesSingleContextKey: Bool {
@@ -162,6 +164,7 @@ struct TiroShortcut: Codable, Equatable, Hashable {
 
 struct ShortcutConfiguration: Codable, Equatable {
     var voiceTyping: TiroShortcut
+    var openWireframe: TiroShortcut?
     var pasteLast: TiroShortcut?
     var openHistory: TiroShortcut?
     var captureScreen: TiroShortcut?
@@ -170,6 +173,11 @@ struct ShortcutConfiguration: Codable, Equatable {
 
     static let defaults = ShortcutConfiguration(
         voiceTyping: .modifierChord(UInt32(controlKey | optionKey)),
+        openWireframe: .key(
+            kVK_ANSI_W,
+            label: "W",
+            modifiers: UInt32(controlKey | optionKey)
+        ),
         pasteLast: .key(kVK_ANSI_V, label: "V", modifiers: UInt32(controlKey | cmdKey)),
         openHistory: nil,
         captureScreen: nil,
@@ -180,6 +188,7 @@ struct ShortcutConfiguration: Codable, Equatable {
     func shortcut(for action: ShortcutAction) -> TiroShortcut? {
         switch action {
         case .voiceTyping: voiceTyping
+        case .openWireframe: openWireframe
         case .pasteLast: pasteLast
         case .openHistory: openHistory
         case .captureScreen: captureScreen
@@ -199,12 +208,32 @@ struct ShortcutConfiguration: Codable, Equatable {
         )
     }
 
+    mutating func restoreMissingWireframeShortcutIfAvailable() {
+        guard openWireframe == nil,
+              let defaultShortcut = Self.defaults.openWireframe
+        else { return }
+        let isAlreadyUsed = ShortcutAction.allCases
+            .filter { $0 != .openWireframe }
+            .contains { shortcut(for: $0) == defaultShortcut }
+        if !isAlreadyUsed {
+            openWireframe = defaultShortcut
+        }
+    }
+
+    func shouldCancelModifierVoiceActivation(for shortcut: TiroShortcut) -> Bool {
+        voiceTyping.keyCode == nil
+            && shortcut.modifiers & voiceTyping.modifiers == voiceTyping.modifiers
+    }
+
     mutating func set(_ shortcut: TiroShortcut?, for action: ShortcutAction) throws {
         var updated = self
         switch action {
         case .voiceTyping:
             guard let shortcut else { throw ShortcutConfigurationError.voiceRequired }
             updated.voiceTyping = shortcut
+        case .openWireframe:
+            guard let shortcut else { throw ShortcutConfigurationError.wireframeRequired }
+            updated.openWireframe = shortcut
         case .pasteLast:
             updated.pasteLast = shortcut
         case .openHistory:
@@ -257,6 +286,7 @@ struct ShortcutConfiguration: Codable, Equatable {
 
 enum ShortcutConfigurationError: LocalizedError, Equatable {
     case voiceRequired
+    case wireframeRequired
     case voiceNeedsTwoModifiers
     case shortcutNeedsModifier
     case attachmentNeedsSingleKey
@@ -267,6 +297,8 @@ enum ShortcutConfigurationError: LocalizedError, Equatable {
         switch self {
         case .voiceRequired:
             "Voice typing must have a shortcut."
+        case .wireframeRequired:
+            "Wireframe Board must have a shortcut."
         case .voiceNeedsTwoModifiers:
             "Use at least two modifiers, or one modifier with a key, for voice typing."
         case .shortcutNeedsModifier:

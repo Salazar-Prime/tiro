@@ -8,6 +8,8 @@ final class WireframeWindowController: NSObject, NSWindowDelegate {
     private let panel: WireframePanel
     private let onDismiss: () -> Void
     private var isDismissing = false
+    private let presentation = WireframePresentation()
+    private var transitionTask: Task<Void, Never>?
 
     var isVisible: Bool {
         panel.isVisible
@@ -32,11 +34,16 @@ final class WireframeWindowController: NSObject, NSWindowDelegate {
         )
         super.init()
 
+        panel.onEscape = { [weak self] in
+            guard let self else { return }
+            if !model.handleEscape() { dismiss() }
+        }
+
         panel.delegate = self
         panel.level = .floating
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        panel.hasShadow = true
+        panel.hasShadow = false
         panel.hidesOnDeactivate = false
         panel.isFloatingPanel = true
         panel.becomesKeyOnlyIfNeeded = false
@@ -49,67 +56,98 @@ final class WireframeWindowController: NSObject, NSWindowDelegate {
         ]
 
         panel.contentView = NSHostingView(
-            rootView: WireframeBoardView(
-                model: model,
-                onExport: { action, colorScheme in
-                    exporter.perform(
-                        action,
-                        elements: model.elements,
-                        revision: model.contentRevision,
-                        colorScheme: colorScheme
-                    )
-                },
-                onClose: { [weak self] in self?.dismiss() }
+            rootView: WireframePresentationView(
+                presentation: presentation,
+                content: WireframeBoardView(
+                    model: model,
+                    exporter: exporter,
+                    onClose: { [weak self] in self?.dismiss() }
+                )
             )
         )
     }
 
     func show() {
+        if panel.isVisible, !isDismissing {
+            panel.makeKeyAndOrderFront(nil)
+            return
+        }
+        let wasDismissing = isDismissing
+        transitionTask?.cancel()
         isDismissing = false
+        panel.ignoresMouseEvents = false
+        presentation.reducesMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         let visibleFrame = activeScreen().visibleFrame
         let finalFrame = WireframePanelGeometry.frame(in: visibleFrame)
 
         if panel.isVisible {
+            if wasDismissing {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    presentation.phase = .board
+                }
+            }
             panel.makeKeyAndOrderFront(nil)
             return
         }
 
-        var initialFrame = finalFrame
-        initialFrame.origin.x = visibleFrame.maxX + 8
-        panel.setFrame(initialFrame, display: false)
-        panel.alphaValue = 0.4
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            presentation.phase = .hidden
+            presentation.burstProgress = 0
+        }
+        panel.setFrame(finalFrame, display: false)
         panel.makeKeyAndOrderFront(nil)
 
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.24
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            panel.animator().setFrame(finalFrame, display: true)
-            panel.animator().alphaValue = 1
+        transitionTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                try await Task.sleep(for: .milliseconds(20))
+                if !presentation.reducesMotion {
+                    withAnimation(.easeOut(duration: 0.10)) { presentation.phase = .dot }
+                    try await Task.sleep(for: .milliseconds(100))
+                    withAnimation(.easeInOut(duration: 0.14)) { presentation.phase = .pill }
+                    try await Task.sleep(for: .milliseconds(140))
+                }
+                withAnimation(.easeInOut(duration: 0.24)) { presentation.phase = .board }
+            } catch {
+                // A close/reopen superseded this transition.
+            }
         }
     }
 
     func dismiss() {
         guard panel.isVisible, !isDismissing else { return }
+        transitionTask?.cancel()
         isDismissing = true
+        panel.ignoresMouseEvents = true
         model.finishPendingName()
-        let visibleFrame = panel.screen?.visibleFrame ?? activeScreen().visibleFrame
-        var hiddenFrame = panel.frame
-        hiddenFrame.origin.x = visibleFrame.maxX + 8
-
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.19
-            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
-            panel.animator().setFrame(hiddenFrame, display: true)
-            panel.animator().alphaValue = 0.35
-        }, completionHandler: { [weak self] in
-            MainActor.assumeIsolated {
-                guard let self else { return }
-                self.panel.orderOut(nil)
-                self.panel.alphaValue = 1
-                self.isDismissing = false
-                self.onDismiss()
+        presentation.reducesMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        transitionTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                if presentation.reducesMotion {
+                    withAnimation(.easeOut(duration: 0.18)) { presentation.phase = .hidden }
+                    try await Task.sleep(for: .milliseconds(180))
+                } else {
+                    presentation.burstProgress = 0
+                    withAnimation(.easeInOut(duration: 0.20)) { presentation.phase = .pill }
+                    try await Task.sleep(for: .milliseconds(200))
+                    withAnimation(.easeInOut(duration: 0.15)) { presentation.phase = .dot }
+                    try await Task.sleep(for: .milliseconds(150))
+                    withAnimation(.easeOut(duration: 0.06)) { presentation.phase = .burst }
+                    try await Task.sleep(for: .milliseconds(20))
+                    withAnimation(.easeOut(duration: 0.18)) { presentation.burstProgress = 1 }
+                    try await Task.sleep(for: .milliseconds(180))
+                }
+                panel.orderOut(nil)
+                presentation.phase = .hidden
+                isDismissing = false
+                onDismiss()
+            } catch {
+                // Cancellation must not order out a board that has reopened.
             }
-        })
+        }
     }
 
     func windowDidResignKey(_ notification: Notification) {
@@ -127,7 +165,17 @@ final class WireframeWindowController: NSObject, NSWindowDelegate {
     }
 }
 
-private final class WireframePanel: NSPanel {
+final class WireframePanel: NSPanel {
+    var onEscape: (() -> Void)?
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown, event.keyCode == 53 {
+            if !event.isARepeat { onEscape?() }
+            return
+        }
+        super.sendEvent(event)
+    }
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 }

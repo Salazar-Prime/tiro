@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class WireframeExporter {
+final class WireframeExporter: ObservableObject {
     private struct CachedExport {
         let revision: Int
         let isDark: Bool
@@ -13,7 +13,8 @@ final class WireframeExporter {
     private let fileURLProvider: () throws -> URL
     private let readClipboardText: () -> String?
     private let writeClipboardText: (String) -> Bool
-    private var cachedExport: CachedExport?
+    @Published private var cachedExport: CachedExport?
+    private let openFileInPreview: (URL) async throws -> Void
 
     init(
         pathWrapper: @escaping () -> ScreenshotPathWrapper,
@@ -27,12 +28,44 @@ final class WireframeExporter {
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
             return pasteboard.setString(value, forType: .string)
+        },
+        openFileInPreview: @escaping (URL) async throws -> Void = { fileURL in
+            guard let previewURL = NSWorkspace.shared.urlForApplication(
+                withBundleIdentifier: "com.apple.Preview"
+            ) else { throw WireframeExportError.previewUnavailable }
+            _ = try await NSWorkspace.shared.open(
+                [fileURL], withApplicationAt: previewURL,
+                configuration: NSWorkspace.OpenConfiguration()
+            )
         }
     ) {
         self.pathWrapper = pathWrapper
         self.fileURLProvider = fileURLProvider
         self.readClipboardText = readClipboardText
         self.writeClipboardText = writeClipboardText
+        self.openFileInPreview = openFileInPreview
+    }
+
+    func savedFileURL(revision: Int, colorScheme: ColorScheme) -> URL? {
+        guard let cachedExport,
+              cachedExport.revision == revision,
+              cachedExport.isDark == (colorScheme == .dark),
+              FileManager.default.fileExists(atPath: cachedExport.fileURL.path)
+        else { return nil }
+        return cachedExport.fileURL
+    }
+
+    func openInPreview(revision: Int, colorScheme: ColorScheme) async -> WireframeExportFeedback {
+        guard let fileURL = savedFileURL(revision: revision, colorScheme: colorScheme) else {
+            cachedExport = nil
+            return WireframeExportFeedback(message: "Save this version first", isError: true)
+        }
+        do {
+            try await openFileInPreview(fileURL)
+            return WireframeExportFeedback(message: "Opened in Preview", isError: false)
+        } catch {
+            return WireframeExportFeedback(message: "Couldn’t open Preview · image is saved", isError: true)
+        }
     }
 
     func perform(
@@ -109,11 +142,8 @@ final class WireframeExporter {
         colorScheme: ColorScheme
     ) throws -> URL {
         let isDark = colorScheme == .dark
-        if let cachedExport,
-           cachedExport.revision == revision,
-           cachedExport.isDark == isDark,
-           FileManager.default.fileExists(atPath: cachedExport.fileURL.path) {
-            return cachedExport.fileURL
+        if let fileURL = savedFileURL(revision: revision, colorScheme: colorScheme) {
+            return fileURL
         }
 
         let layout = WireframeExportLayout(elements: elements)
@@ -186,28 +216,20 @@ struct WireframeExportLayout: Equatable {
                     dx: -square.minX,
                     dy: -square.minY
                 ),
-                name: element.name
+                name: element.name,
+                color: element.color,
+                image: element.image
             )
         }
     }
 
     private static func visualBounds(for element: WireframeElement) -> CGRect {
-        guard !element.name.isEmpty else { return element.geometry.bounds }
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 12, weight: .semibold)
-        ]
-        let textSize = (element.name as NSString).size(withAttributes: attributes)
-        let anchor = element.geometry.labelAnchor
-        let labelBounds = CGRect(
-            x: anchor.x - textSize.width / 2 - 3,
-            y: anchor.y - textSize.height / 2 - 2,
-            width: textSize.width + 6,
-            height: textSize.height + 4
-        )
+        guard let labelBounds = element.labelBounds else { return element.geometry.bounds }
         return element.geometry.bounds.union(labelBounds)
     }
 }
 
 private enum WireframeExportError: Error {
     case renderFailed
+    case previewUnavailable
 }

@@ -36,6 +36,8 @@ final class VoiceTypingController {
         switch action {
         case .beginRecording:
             beginRecording()
+        case .cancelRecording:
+            cancelRecording()
         case .lockRecording:
             recordingIsLocked = true
             if recorder.isRecording {

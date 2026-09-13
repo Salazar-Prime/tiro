@@ -20,35 +20,35 @@
 
 <p align="center"><a href="https://github.com/Salazar-Prime/tiro/releases">Download the public beta</a></p>
 
-Tiro is a native macOS menu-bar app that turns speech into text wherever your cursor is active. It briefly pauses active media and mutes system output while recording, transcribes the finished audio with OpenAI or locally with whisper.cpp, then inserts the result into the focused app.
+Tiro turns speech into text at your cursor on macOS. Hold a shortcut, speak, and release to transcribe with OpenAI or locally with whisper.cpp. Capture screenshots and sketch UI ideas from the same menu-bar app.
 
-Tiro can also capture the usable screen or a dragged selection from its menu-bar menu. Screenshots are saved as PNG files in `Pictures/Tiro screenshots`, pasted into the previously focused app when it accepts images, and saved in history as readable local paths. While the microphone is listening, press <kbd>S</kbd> by itself to append one or more screenshots to that transcript.
+Tiro requires Microphone and Accessibility access. Screenshot features additionally require Screen Recording access.
 
-Screenshot paths are surrounded with single quotes by default. The Screenshots settings page can disable wrapping or replace the text before and after each path with any custom text.
-
-The **Wireframe Board…** menu item opens a right-side canvas for sketching interface ideas. Draw rectangles, circles, ellipses, freehand marks, distinct mobile and browser frames, or a generic dotted frame on a dot grid, then label each element in place. The board hides when focus moves away unless you pin it, and **Clear all** resets the canvas. Exports are cropped to a tight square around the artwork and saved in `Pictures/Tiro screenshots`; you can copy the formatted local path or append it to the current clipboard text.
-
-## See it in action
+## Voice
 
 <p align="center">
-  <img src="docs/demos/voice-typing/voice-typing.gif" alt="Tiro transcribing speech directly into Sublime Text">
+  <img src="docs/screenshots/voice-pill.png" width="238" alt="Tiro's mint voice pill displaying Hands-free with a gold audio waveform">
 </p>
 
-## Shortcuts
+| Voice | Wireframe | Paste recent |
+| :---: | :---: | :---: |
+| <kbd>⌃</kbd> <kbd>⌥</kbd> | <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>W</kbd> | <kbd>⌃</kbd> <kbd>⌘</kbd> <kbd>V</kbd> |
 
-These are the defaults. Voice, paste, screenshot, and history routes can be changed in Tiro’s Settings; voice typing can use either a modifier-only chord or modifiers plus a regular key. The Wireframe Board menu shortcut is fixed.
+Hold Control + Option to speak; release to insert. Double-tap for hands-free recording.
 
-Opening transcript history is also available as an optional global shortcut. Assign it from the Shortcuts page in Settings.
+<p align="center">
+  <img src="docs/demos/voice-typing/voice-typing.gif" width="800" alt="Tiro's mint voice pill animates while listening and transcribing, then the view pans to the spoken sentence appearing in Sublime Text">
+</p>
 
-| Gesture | Result |
-| --- | --- |
-| Hold <kbd>Control</kbd> + <kbd>Option</kbd> | Record; release to transcribe and insert |
-| Double-tap <kbd>Control</kbd> + <kbd>Option</kbd> | Lock recording hands-free |
-| Press <kbd>Control</kbd> + <kbd>Option</kbd> while locked | Stop and insert |
-| Press <kbd>S</kbd> while voice typing is active | Attach the usable screen to this transcript |
-| <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>2</kbd> | Capture and paste a dragged screen selection |
-| <kbd>Control</kbd> + <kbd>Command</kbd> + <kbd>V</kbd> | Insert the last transcript again |
-| <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>W</kbd> | Open Wireframe Board while Tiro is active |
+[Watch the video](docs/demos/voice-typing/voice-typing.mp4).
+
+## Wireframe Board
+
+Sketch a phone or browser UI with shapes, labels, and colored ink. Insert your latest screenshot, then save a PNG or copy its local path. [Drawing and export guide](docs/wireframe-board.md).
+
+<p align="center">
+  <img src="docs/screenshots/wireframe-board.png" width="640" alt="Tiro Wireframe Board showing a phone task app with a Today header, three task cards, an Add task button, drawing tools, and export controls">
+</p>
 
 ## Setup
 
@@ -81,9 +81,9 @@ Move `Tiro.app` to `/Applications` before granting permissions so macOS can keep
 
 - Recording starts only when you use the shortcut.
 - In OpenAI mode, Tiro sends the recording and any optional transcription instructions directly to OpenAI's `/v1/audio/transcriptions` endpoint using your API key. The current build uses `gpt-4o-mini-transcribe`, not the `whisper-1` model.
-- In On-device mode, audio and transcription stay on your Mac. Tiro uses whisper.cpp 1.9.2 with the English `base.en` Q5 model. Optional offline vocabulary/context is an initial Whisper prompt, not post-processing.
+- In On-device mode, audio and transcription stay on your Mac. When you choose **Download** in Settings, Tiro downloads the pinned English `base.en` Q5 model from Hugging Face, verifies its size and SHA-256 hash, and stores it in Application Support. You can remove it from Settings. Tiro uses whisper.cpp 1.9.2; optional vocabulary/context is an initial Whisper prompt, not post-processing.
 - OpenAI handles these requests under its API data controls, which differ from ChatGPT's consumer data controls. Its current policy lists the transcription endpoint as not used for training, with no abuse-monitoring or application-state retention. See [OpenAI's API data controls](https://developers.openai.com/api/docs/guides/your-data#default-usage-policies-by-endpoint).
-- Temporary audio on your Mac is deleted after the transcription request completes.
+- Temporary audio is written to macOS's temporary directory. Tiro deletes it when you cancel, when a recording is too short, and after transcription succeeds or fails. A crash may leave a file until macOS clears temporary data.
 - Tiro does not send analytics, telemetry, crash reports, or application logs. Limited operational diagnostics stay in macOS's local unified log and do not include audio or transcript content.
 - Transcript history stays on this Mac and can be searched, deleted, or cleared at any time.
 - Screenshots are taken only when you choose a capture action and remain in your local `Pictures/Tiro screenshots` folder.
@@ -96,7 +96,7 @@ Move `Tiro.app` to `/Applications` before granting permissions so macOS can keep
 - [x] Paste the last transcript again with <kbd>Control</kbd> + <kbd>Command</kbd> + <kbd>V</kbd>
 - [x] Browse, search, copy, delete, and clear local transcript history
 - [x] Capture the visible screen without the menu bar or Dock, or drag a selection
-- [x] Customize voice, paste, and screenshot shortcuts from Settings
+- [x] Customize voice, wireframe, paste, and screenshot shortcuts from Settings
 - [x] Open searchable transcript history inside Settings or with a custom shortcut
 - [x] Sketch labeled UI wireframes and export or copy their local PNG paths
 

@@ -309,6 +309,7 @@ private extension ShortcutAction {
     var icon: String {
         switch self {
         case .voiceTyping: "waveform.and.mic"
+        case .openWireframe: "square.grid.3x3"
         case .pasteLast: "text.cursor"
         case .openHistory: "clock.arrow.circlepath"
         case .captureScreen: "rectangle.inset.filled"
@@ -320,6 +321,7 @@ private extension ShortcutAction {
     var detail: String {
         switch self {
         case .voiceTyping: "Hold to speak · double-tap to lock"
+        case .openWireframe: "Open the sketching canvas from anywhere"
         case .pasteLast: "Insert the newest transcript or screenshot path"
         case .openHistory: "Open the History page from anywhere"
         case .captureScreen: "Everything except the menu bar and Dock"
@@ -331,7 +333,7 @@ private extension ShortcutAction {
     func tint(_ palette: VoiceTypePalette) -> Color {
         switch self {
         case .voiceTyping, .captureSelection, .attachScreenshot: palette.coral
-        case .pasteLast, .openHistory, .captureScreen: palette.aqua
+        case .openWireframe, .pasteLast, .openHistory, .captureScreen: palette.aqua
         }
     }
 }

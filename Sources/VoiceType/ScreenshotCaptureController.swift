@@ -49,6 +49,22 @@ enum ScreenshotStorage {
         try nextFileURL(named: "Tiro Wireframe", at: date)
     }
 
+    static func latestScreenshotURL(in directory: URL = directoryURL) throws -> URL? {
+        guard FileManager.default.fileExists(atPath: directory.path) else { return nil }
+        let keys: Set<URLResourceKey> = [.isRegularFileKey, .isSymbolicLinkKey, .creationDateKey]
+        let files = try FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: Array(keys), options: [.skipsHiddenFiles]
+        )
+        return try files.compactMap { url -> (URL, Date)? in
+            guard url.lastPathComponent.hasPrefix("Tiro Screenshot "), url.pathExtension.lowercased() == "png" else { return nil }
+            let values = try url.resourceValues(forKeys: keys)
+            guard values.isRegularFile == true, values.isSymbolicLink != true else { return nil }
+            return (url, values.creationDate ?? .distantPast)
+        }.max {
+            $0.1 == $1.1 ? $0.0.lastPathComponent < $1.0.lastPathComponent : $0.1 < $1.1
+        }?.0
+    }
+
     private static func nextFileURL(named prefix: String, at date: Date) throws -> URL {
         let directory = try prepareDirectory()
         let formatter = DateFormatter()

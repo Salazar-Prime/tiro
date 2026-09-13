@@ -16,6 +16,7 @@ final class HotkeyMonitor {
     private var shortcuts: ShortcutConfiguration
     private let onVoiceAction: (VoiceGestureAction) -> Void
     private let onPaste: () -> Void
+    private let onOpenWireframe: () -> Void
     private let onOpenHistory: () -> Void
     private let onScreenshot: () -> Void
     private let onCaptureScreen: () -> Void
@@ -27,6 +28,7 @@ final class HotkeyMonitor {
         shortcuts: ShortcutConfiguration,
         onVoiceAction: @escaping (VoiceGestureAction) -> Void,
         onPaste: @escaping () -> Void,
+        onOpenWireframe: @escaping () -> Void,
         onOpenHistory: @escaping () -> Void,
         onScreenshot: @escaping () -> Void,
         onCaptureScreen: @escaping () -> Void,
@@ -36,6 +38,7 @@ final class HotkeyMonitor {
         self.shortcuts = shortcuts
         self.onVoiceAction = onVoiceAction
         self.onPaste = onPaste
+        self.onOpenWireframe = onOpenWireframe
         self.onOpenHistory = onOpenHistory
         self.onScreenshot = onScreenshot
         self.onCaptureScreen = onCaptureScreen
@@ -123,6 +126,12 @@ final class HotkeyMonitor {
     private func registerHotKeys() {
         guard !isPausedForShortcutRecording else { return }
         register(shortcuts.pasteLast, action: .pasteLast, identifier: 1, press: onPaste)
+        register(
+            shortcuts.openWireframe,
+            action: .openWireframe,
+            identifier: 3,
+            press: { [weak self] in self?.handleOpenWireframeHotKey() }
+        )
         register(
             shortcuts.openHistory,
             action: .openHistory,
@@ -237,6 +246,19 @@ final class HotkeyMonitor {
 
     private func attachmentKeyBecameUp() {
         attachmentKeyIsDown = false
+    }
+
+    private func handleOpenWireframeHotKey() {
+        if let wireframeShortcut = shortcuts.openWireframe,
+           shortcuts.shouldCancelModifierVoiceActivation(for: wireframeShortcut),
+           comboIsDown {
+            finishTimer?.invalidate()
+            finishTimer = nil
+            comboIsDown = false
+            gestureMachine.reset()
+            onVoiceAction(.cancelRecording)
+        }
+        onOpenWireframe()
     }
 
     private func handle(_ event: NSEvent) {

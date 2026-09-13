@@ -307,6 +307,7 @@ final class AppModel: ObservableObject {
         else { return .defaults }
 
         decoded.normalizeContextShortcuts()
+        decoded.restoreMissingWireframeShortcutIfAvailable()
         guard (try? decoded.validate()) != nil else { return .defaults }
         return decoded
     }

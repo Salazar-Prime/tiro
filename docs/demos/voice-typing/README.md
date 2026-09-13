@@ -1,6 +1,40 @@
 # Voice typing README demo
 
-This folder contains the animated walkthrough used by the project README.
+This folder contains the animated walkthrough used by the project README, its
+cropped source video, and an editable OpenScreen project.
+
+The demo was freshly recorded on September 13, 2026, using Tiro's mint pill and
+Sublime Text. It shows the live Listening waveform, Transcribing state, and the
+actual inserted transcript. [Watch the edited video](voice-typing.mp4) or
+[view the GIF](voice-typing.gif).
+
+## Re-export
+
+Install Node.js, FFmpeg, and [OpenScreen](https://github.com/getopenscreen/openscreen),
+then run this from the repository root:
+
+```sh
+node docs/demos/voice-typing/render.mjs
+```
+
+The script resolves the project's relative media path into a temporary project,
+renders the camera animation with OpenScreen, saves the edited MP4, and optimizes
+the looping GIF at 1280 × 720 and 30 fps. Pass an output path to preview without
+replacing the README asset:
+
+```sh
+node docs/demos/voice-typing/render.mjs /tmp/tiro-preview.gif
+```
+
+Edit the two `zoomRegions` in `voice-typing.openscreen` to change the timing or
+framing. If opening that project in OpenScreen's UI, relink its video to the
+adjacent `voice-typing-source.mp4` when prompted. This OpenScreen version's CLI
+does not resolve relative media paths itself; the render script handles that.
+
+The source contains only two cropped areas of the actual recording—the pill and
+Sublime's active text lines—repositioned on the editor's background. No desktop,
+menu bar, Dock, purple window border, audio, or clipboard-history window is
+included. The text insertion and pill animations come from the recording.
 
 ## Walkthrough
 
@@ -24,18 +58,16 @@ Use two connected OpenScreen zoom regions:
 1. Isolate Tiro's pill on the editor's clean dark background and open at 5×.
    Keep this shot fixed from **Listening** through **Transcribing**; do not show
    Sublime's purple window edge.
-2. Make one direct one-second pan into a 2.2× close-up of the Sublime title and
+2. Make one direct one-second pan into a 3.5× close-up of the Sublime title and
    active text lines as the transcript appears.
 
 Keep the regions one second apart so OpenScreen connects them with a smooth pan.
-Freeze the last **Transcribing** pill frame during that pan so the intermediate
-**Paste sent** state does not distract from the text reveal. Trim the result
-before any menu or transcript-history window opens, then export it as
-`voice-typing.gif` in this folder using the medium size at 30 fps. The higher
-frame rate keeps the Listening waveform, Transcribing dots, and camera pan
-smooth.
+Move away before **Paste sent** so it does not distract from the text reveal.
+Keep the final close-up fixed until the loop ends. Trim the result before any
+menu or transcript-history window opens. Export at 30 fps to retain the
+Listening waveform, Transcribing dots, and smooth camera movement.
 
-### CLI alternative
+### Recording a new take
 
 The installed OpenScreen app includes a command-line recorder and GIF exporter:
 
@@ -59,3 +91,7 @@ OPENSCREEN="/Applications/Openscreen.app/Contents/MacOS/Openscreen"
 Before recording, give OpenScreen Screen Recording and Accessibility access in
 System Settings. Keep the final GIF under 10 MB so the README remains quick to
 load.
+
+If OpenScreen's CLI reports “Failed to get sources,” use macOS's
+<kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>5</kbd> recorder for the source take,
+then use OpenScreen for the edit and export. This demo used that fallback.

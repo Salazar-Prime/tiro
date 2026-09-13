@@ -34,7 +34,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .general:
             "Check system access and review the gestures you’ll use most."
         case .shortcuts:
-            "Choose how you start dictation, paste history, and trigger captures."
+            "Choose how you start dictation, open tools, paste history, and trigger captures."
         case .screenshots:
             "Capture the visible screen or a selection, then insert it where you’re working."
         case .transcription:

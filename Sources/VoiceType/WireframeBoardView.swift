@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum WireframeExportAction {
+enum WireframeExportAction: String {
     case save
     case copyLink
     case appendLink
@@ -13,21 +13,24 @@ struct WireframeExportFeedback {
 
 struct WireframeBoardView: View {
     @ObservedObject var model: WireframeCanvasModel
-    let onExport: (WireframeExportAction, ColorScheme) -> WireframeExportFeedback
+    @ObservedObject var exporter: WireframeExporter
     let onClose: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var nameFieldIsFocused: Bool
     @State private var hoverPoint: CGPoint?
     @State private var exportFeedback: WireframeExportFeedback?
     @State private var feedbackTask: Task<Void, Never>?
+    @State private var feedbackLabel: String?
+    @State private var penGestureIsActive = false
+    @State private var isOpeningPreview = false
 
     private let drawingTools: [WireframeTool] = [
         .rectangle,
         .circle,
         .ellipse,
-        .pen,
-        .rename
+        .pen
     ]
 
     private var palette: VoiceTypePalette { VoiceTypePalette(colorScheme) }
@@ -41,7 +44,8 @@ struct WireframeBoardView: View {
                     draftPoints: model.draftPoints,
                     namingElementID: model.namingElementID,
                     hoverPoint: hoverPoint,
-                    showsDraft: true
+                    showsDraft: true,
+                    drawingColor: model.selectedColor
                 )
                 .contentShape(Rectangle())
                 .onContinuousHover { phase in
@@ -60,13 +64,15 @@ struct WireframeBoardView: View {
                     DragGesture(minimumDistance: 0, coordinateSpace: .local)
                         .onChanged { value in
                             guard model.selectedTool == .pen else { return }
-                            if model.draftPoints.isEmpty {
+                            if !penGestureIsActive {
+                                penGestureIsActive = true
                                 model.beginPenStroke(at: value.startLocation)
                             }
                             model.continuePenStroke(at: value.location)
                         }
                         .onEnded { value in
                             model.endPenStroke(at: value.location)
+                            penGestureIsActive = false
                         }
                 )
                 .accessibilityLabel("Wireframe drawing canvas")
@@ -77,34 +83,48 @@ struct WireframeBoardView: View {
                 }
 
                 VStack(spacing: 0) {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(alignment: .top, spacing: 8) {
-                            drawingToolbar
-                            Spacer(minLength: 8)
-                            exportToolbar
-                        }
-
-                        VStack(spacing: 8) {
-                            HStack {
-                                Spacer()
-                                exportToolbar
-                            }
-                            HStack {
-                                drawingToolbar
-                                Spacer()
-                            }
-                        }
+                    HStack(alignment: .top, spacing: 4) {
+                        drawingToolbar.wireframeControlBounds()
+                        insertToolbar(canvasSize: proxy.size, showsTitle: proxy.size.width >= 500)
+                            .wireframeControlBounds()
+                        Spacer(minLength: 0)
+                        windowControls.wireframeControlBounds()
                     }
+                    .padding(.horizontal, -6)
                     .padding(.top, 12)
 
                     Spacer()
 
-                    statusChip
-                        .allowsHitTesting(false)
-                        .padding(.bottom, 12)
+                    VStack(spacing: 8) {
+                        if let feedbackLabel {
+                            Text(exportFeedback?.isError == true ? exportFeedback?.message ?? feedbackLabel : feedbackLabel)
+                                .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                                .foregroundStyle(exportFeedback?.isError == true ? palette.danger : palette.ink)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(.ultraThinMaterial, in: Capsule())
+                                .wireframeControlBounds()
+                                .allowsHitTesting(false)
+                        }
+                        exportToolbar.wireframeControlBounds()
+                    }
+                    .padding(.bottom, 12)
                 }
                 .padding(.horizontal, 12)
+
+                colorToolbar
+                    .wireframeControlBounds()
+                    .position(x: 30, y: max(222, proxy.size.height / 2))
+
             }
+        }
+        .overlayPreferenceValue(WireframeControlAnchors.self) { anchors in
+            GeometryReader { proxy in
+                cursorHint(in: proxy.size, controls: anchors.map { proxy[$0] })
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
         }
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay {
@@ -121,15 +141,7 @@ struct WireframeBoardView: View {
                 nameFieldIsFocused = true
             }
         }
-        .onExitCommand {
-            if model.namingElementID != nil {
-                model.finishPendingName()
-            } else if !model.draftPoints.isEmpty {
-                model.cancelDraft()
-            } else {
-                onClose()
-            }
-        }
+        .onExitCommand(perform: escape)
         .onDisappear {
             feedbackTask?.cancel()
         }
@@ -141,43 +153,8 @@ struct WireframeBoardView: View {
                 toolButton(tool)
             }
 
-            Menu {
-                Button {
-                    model.selectTool(.mobileFrame)
-                } label: {
-                    Label("Mobile frame", systemImage: "iphone")
-                }
-                Button {
-                    model.selectTool(.browserFrame)
-                } label: {
-                    Label("Browser window", systemImage: "macwindow")
-                }
-                Button {
-                    model.selectTool(.dottedFrame)
-                } label: {
-                    Label("Dotted frame", systemImage: "rectangle.dashed")
-                }
-            } label: {
-                Image(systemName: frameToolIcon)
-                    .font(.system(size: 13, weight: .semibold))
-                    .frame(width: 28, height: 28)
-                    .foregroundStyle(frameToolIsSelected ? palette.aqua : palette.ink.opacity(0.72))
-                    .background {
-                        if frameToolIsSelected {
-                            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                .fill(palette.aqua.opacity(0.13))
-                        }
-                    }
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    model.finishPendingName()
-                }
-            )
-            .help("Add a mobile frame, browser window, or dotted frame")
-            .accessibilityLabel("Frame options")
+            toolbarDivider
+            toolButton(.rename)
 
             toolbarDivider
 
@@ -210,7 +187,11 @@ struct WireframeBoardView: View {
             .help("Clear all")
             .accessibilityLabel("Clear all wireframe elements")
         }
-        .modifier(WireframeToolbarChrome(palette: palette, colorScheme: colorScheme))
+        .modifier(WireframeToolbarDroplet(
+            selectedID: frameToolIsSelected ? "frames" : model.selectedTool.rawValue,
+            label: frameToolIsSelected ? nil : model.selectedTool.actionLabel,
+            palette: palette, reduceMotion: reduceMotion
+        ))
     }
 
     private func toolButton(_ tool: WireframeTool) -> some View {
@@ -223,54 +204,141 @@ struct WireframeBoardView: View {
                 .foregroundStyle(
                     model.selectedTool == tool ? palette.aqua : palette.ink.opacity(0.72)
                 )
-                .background {
-                    if model.selectedTool == tool {
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(palette.aqua.opacity(0.13))
-                    }
-                }
         }
         .buttonStyle(.plain)
         .help("\(tool.title): \(tool.instruction)")
         .accessibilityLabel(tool.title)
+        .accessibilityAddTraits(model.selectedTool == tool ? .isSelected : [])
+        .wireframeToolbarAnchor(tool.rawValue)
+    }
+
+    private var currentVersionIsSaved: Bool {
+        !model.hasUnsavedName
+            && exporter.savedFileURL(revision: model.contentRevision, colorScheme: colorScheme) != nil
+    }
+
+    private func insertToolbar(canvasSize: CGSize, showsTitle: Bool) -> some View {
+        HStack(spacing: 4) {
+            if showsTitle {
+                Text("Insert")
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(palette.ink.opacity(0.65))
+                    .padding(.horizontal, 4)
+            }
+            Menu {
+                Button {
+                    model.selectTool(.mobileFrame)
+                } label: {
+                    Label("Mobile frame", systemImage: "iphone")
+                }
+                Button {
+                    model.selectTool(.browserFrame)
+                } label: {
+                    Label("Browser window", systemImage: "macwindow")
+                }
+                Button {
+                    model.selectTool(.dottedFrame)
+                } label: {
+                    Label("Dotted frame", systemImage: "rectangle.dashed")
+                }
+            } label: {
+                Image(systemName: frameToolIcon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(width: 28, height: 28)
+                    .foregroundStyle(frameToolIsSelected ? palette.aqua : palette.ink.opacity(0.72))
+                    .background {
+                        if frameToolIsSelected {
+                            RoundedRectangle(cornerRadius: 7)
+                                .fill(palette.aqua.opacity(0.13))
+                        }
+                    }
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .frame(width: 28)
+            .fixedSize()
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    model.finishPendingName()
+                }
+            )
+            .help("Add a mobile frame, browser window, or dotted frame")
+            .accessibilityLabel("Frame options")
+            .wireframeToolbarAnchor("frames")
+
+            Button {
+                insertLatestScreenshot(canvasSize: canvasSize)
+            } label: {
+                Image(systemName: "photo.badge.plus")
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(width: 28, height: 28)
+                    .foregroundStyle(palette.ink.opacity(0.72))
+            }
+            .buttonStyle(.plain)
+            .help("Insert the latest Tiro screenshot behind your drawing")
+            .accessibilityLabel("Insert last screenshot")
+        }
+        .modifier(WireframeToolbarChrome(palette: palette, colorScheme: colorScheme))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Insert tools")
     }
 
     private var exportToolbar: some View {
         HStack(spacing: 2) {
-            exportButton(
-                action: .save,
-                icon: "square.and.arrow.down",
-                label: "Save image"
-            )
-            exportButton(
-                action: .copyLink,
-                icon: "doc.on.doc",
-                label: "Copy link"
-            )
-            Button {
-                performExport(.appendLink)
-            } label: {
-                ZStack(alignment: .bottomTrailing) {
-                    Image(systemName: "link")
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 7, weight: .bold))
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(palette.surface, palette.aqua)
-                        .offset(x: 2, y: 2)
-                }
-                .font(.system(size: 12.5, weight: .semibold))
-                .frame(width: 28, height: 28)
-                .foregroundStyle(palette.ink.opacity(model.elements.isEmpty ? 0.25 : 0.72))
+            Button(action: saveOrOpen) {
+                exportLabel(
+                    icon: currentVersionIsSaved ? "arrow.up.forward.square" : "square.and.arrow.down",
+                    title: currentVersionIsSaved ? "Open" : "Save"
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(model.elements.isEmpty || isOpeningPreview)
+            .help(currentVersionIsSaved ? "Open saved image in Preview" : "Save image")
+            .accessibilityLabel(currentVersionIsSaved ? "Open in Preview" : "Save image")
+
+            toolbarDivider
+            Button { performExport(.copyLink) } label: {
+                exportLabel(icon: "doc.on.doc", title: "Copy link")
             }
             .buttonStyle(.plain)
             .disabled(model.elements.isEmpty)
-            .help("Save and append link to the current clipboard text")
-            .accessibilityLabel("Append link to clipboard")
+            .help("Save and copy the image link")
+            .accessibilityLabel("Copy link")
 
             toolbarDivider
+            Button { performExport(.appendLink) } label: {
+                exportLabel(icon: "link.badge.plus", title: "Append link")
+            }
+            .buttonStyle(.plain)
+            .disabled(model.elements.isEmpty)
+            .help("Save and append the link to the current clipboard text")
+            .accessibilityLabel("Append link to clipboard")
+        }
+        .modifier(WireframeToolbarChrome(palette: palette, colorScheme: colorScheme))
+    }
 
+    private func exportLabel(icon: String, title: String) -> some View {
+        VStack(spacing: 2) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .frame(height: 24)
+            Text(title)
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+        }
+        .frame(width: 66, height: 44)
+        .foregroundStyle(palette.ink.opacity(model.elements.isEmpty ? 0.3 : 0.75))
+        .contentShape(Rectangle())
+    }
+
+    private var windowControls: some View {
+        HStack(spacing: 2) {
             Button {
+                model.finishPendingName()
                 model.togglePin()
+                showFeedback(
+                    WireframeExportFeedback(message: model.isPinned ? "Board pinned" : "Board unpinned", isError: false),
+                    label: model.isPinned ? "Pinned" : "Unpinned"
+                )
             } label: {
                 Image(systemName: model.isPinned ? "pin.fill" : "pin")
                     .font(.system(size: 12, weight: .semibold))
@@ -278,7 +346,7 @@ struct WireframeBoardView: View {
                     .foregroundStyle(model.isPinned ? palette.aqua : palette.ink.opacity(0.64))
                     .background {
                         if model.isPinned {
-                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            RoundedRectangle(cornerRadius: 7)
                                 .fill(palette.aqua.opacity(0.13))
                         }
                     }
@@ -303,23 +371,51 @@ struct WireframeBoardView: View {
         .modifier(WireframeToolbarChrome(palette: palette, colorScheme: colorScheme))
     }
 
-    private func exportButton(
-        action: WireframeExportAction,
-        icon: String,
-        label: String
-    ) -> some View {
-        Button {
-            performExport(action)
-        } label: {
-            Image(systemName: icon)
-                .font(.system(size: 12.5, weight: .semibold))
-                .frame(width: 28, height: 28)
-                .foregroundStyle(palette.ink.opacity(model.elements.isEmpty ? 0.25 : 0.72))
+    private func insertLatestScreenshot(canvasSize: CGSize) {
+        do {
+            guard let url = try ScreenshotStorage.latestScreenshotURL() else {
+                showFeedback(.init(message: "No Tiro screenshots yet", isError: true),
+                             label: "No screenshot")
+                return
+            }
+            // Hold the image in memory so later edits/deletion of the source
+            // cannot change the board or its export.
+            let data = try Data(contentsOf: url)
+            guard let image = NSImage(data: data), image.isValid else {
+                showFeedback(.init(message: "The latest screenshot couldn’t be read", isError: true),
+                             label: "Couldn’t insert")
+                return
+            }
+            model.insertScreenshot(image, canvasSize: canvasSize)
+            showFeedback(.init(message: "Screenshot inserted", isError: false),
+                         label: "Screenshot inserted")
+        } catch {
+            showFeedback(.init(message: "Couldn’t read Tiro screenshots", isError: true),
+                         label: "Couldn’t insert")
         }
-        .buttonStyle(.plain)
-        .disabled(model.elements.isEmpty)
-        .help(label)
-        .accessibilityLabel(label)
+    }
+
+    @ViewBuilder
+    private func cursorHint(in size: CGSize, controls: [CGRect]) -> some View {
+        if let pointer = hoverPoint, let hint = model.cursorHint,
+           !controls.contains(where: { $0.contains(pointer) }) {
+            let font = NSFont.systemFont(ofSize: 10.5, weight: .medium)
+            let textSize = (hint as NSString).size(withAttributes: [.font: font])
+            let hintSize = CGSize(width: ceil(textSize.width) + 24, height: 25)
+            let labels = model.elements.compactMap(\.labelBounds)
+            if let frame = WireframeCursorHintLayout.frame(
+                pointer: pointer, size: hintSize, canvas: CGRect(origin: .zero, size: size),
+                avoiding: labels + controls
+            ) {
+                Text(hint)
+                    .font(.system(size: 10.5, weight: .medium))
+                    .foregroundStyle(palette.ink.opacity(0.82))
+                    .frame(width: hintSize.width, height: hintSize.height)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay { Capsule().strokeBorder(palette.aqua.opacity(0.22), lineWidth: 0.65) }
+                    .position(x: frame.midX, y: frame.midY)
+            }
+        }
     }
 
     private var toolbarDivider: some View {
@@ -329,30 +425,36 @@ struct WireframeBoardView: View {
             .padding(.horizontal, 2)
     }
 
-    private var statusChip: some View {
-        HStack(spacing: 7) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 5, height: 5)
-            Text(exportFeedback?.message ?? model.statusText)
+    private var colorToolbar: some View {
+        VStack(spacing: 7) {
+            Text("Ink")
                 .font(.system(size: 10.5, weight: .medium, design: .rounded))
                 .foregroundStyle(palette.ink.opacity(0.68))
-                .lineLimit(1)
+                .padding(.top, 3)
+            ForEach(WireframeColor.allCases) { color in
+                Button {
+                    model.selectColor(color)
+                } label: {
+                    Circle()
+                        .fill(color.color(in: colorScheme))
+                        .frame(width: 17, height: 17)
+                        .overlay {
+                            if model.selectedColor == color {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(palette.surface)
+                            }
+                        }
+                        .frame(width: 27, height: 27)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .help("\(color.title) ink · also recolors the element being labeled")
+                .accessibilityLabel("\(color.title) ink")
+                .accessibilityAddTraits(model.selectedColor == color ? .isSelected : [])
+            }
         }
-        .padding(.horizontal, 11)
-        .frame(height: 27)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay {
-            Capsule()
-                .strokeBorder(palette.ink.opacity(0.12), lineWidth: 0.75)
-        }
-    }
-
-    private var statusColor: Color {
-        if let exportFeedback {
-            return exportFeedback.isError ? palette.danger : palette.aqua
-        }
-        return model.namingElementID == nil ? palette.aqua : palette.coral
+        .modifier(WireframeToolbarChrome(palette: palette, colorScheme: colorScheme))
     }
 
     private var frameToolIsSelected: Bool {
@@ -379,8 +481,8 @@ struct WireframeBoardView: View {
         let fieldWidth = min(max(element.geometry.bounds.width - 16, 150), 230)
         let anchor = element.geometry.labelAnchor
         let position = CGPoint(
-            x: min(max(anchor.x, fieldWidth / 2 + 12), size.width - fieldWidth / 2 - 12),
-            y: min(max(anchor.y, 88), size.height - 48)
+            x: min(max(anchor.x, fieldWidth / 2 + 54), size.width - fieldWidth / 2 - 12),
+            y: min(max(anchor.y, 151), size.height - 86)
         )
 
         return TextField(
@@ -418,13 +520,77 @@ struct WireframeBoardView: View {
 
     private func performExport(_ action: WireframeExportAction) {
         model.finishPendingName()
-        exportFeedback = onExport(action, colorScheme)
+        let feedback = exporter.perform(
+            action, elements: model.elements,
+            revision: model.contentRevision, colorScheme: colorScheme
+        )
+        let label: String
+        switch action {
+        case .save: label = "Saved"
+        case .copyLink: label = "Link copied"
+        case .appendLink: label = "Link appended"
+        }
+        showFeedback(feedback, label: label)
+    }
+
+    private func saveOrOpen() {
+        model.finishPendingName()
+        guard currentVersionIsSaved else {
+            performExport(.save)
+            return
+        }
+        isOpeningPreview = true
+        Task { @MainActor in
+            let feedback = await exporter.openInPreview(
+                revision: model.contentRevision, colorScheme: colorScheme
+            )
+            isOpeningPreview = false
+            showFeedback(feedback, label: "Opened in Preview")
+        }
+    }
+
+    private func escape() {
+        if model.handleEscape() {
+            showFeedback(
+                WireframeExportFeedback(message: "Action cancelled", isError: false),
+                label: "Cancelled"
+            )
+        } else {
+            onClose()
+        }
+    }
+
+    private func showFeedback(_ feedback: WireframeExportFeedback, label: String) {
         feedbackTask?.cancel()
+        exportFeedback = feedback
+        // Retrigger confirmation even when the same action is repeated.
+        feedbackLabel = nil
         feedbackTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(70))
+            guard !Task.isCancelled else { return }
+            withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.34, dampingFraction: 0.78)) {
+                feedbackLabel = feedback.isError ? "Couldn’t complete" : label
+            }
             try? await Task.sleep(for: .seconds(2.6))
             guard !Task.isCancelled else { return }
-            exportFeedback = nil
+            withAnimation(.easeOut(duration: 0.18)) {
+                feedbackLabel = nil
+                exportFeedback = nil
+            }
         }
+    }
+}
+
+private struct WireframeControlAnchors: PreferenceKey {
+    static let defaultValue: [Anchor<CGRect>] = []
+    static func reduce(value: inout [Anchor<CGRect>], nextValue: () -> [Anchor<CGRect>]) {
+        value.append(contentsOf: nextValue())
+    }
+}
+
+private extension View {
+    func wireframeControlBounds() -> some View {
+        anchorPreference(key: WireframeControlAnchors.self, value: .bounds) { [$0] }
     }
 }
 
@@ -435,6 +601,7 @@ struct WireframeArtworkView: View {
     let namingElementID: UUID?
     let hoverPoint: CGPoint?
     let showsDraft: Bool
+    var drawingColor: WireframeColor = .ink
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -444,15 +611,34 @@ struct WireframeArtworkView: View {
         Canvas { context, size in
             drawGrid(in: &context, size: size)
 
+            // Screenshots are always behind vector artwork, regardless of
+            // insertion order; the array order still drives Undo.
+            for element in elements {
+                if let image = element.image {
+                    context.draw(Image(nsImage: image), in: element.geometry.bounds)
+                }
+            }
+
             for element in elements {
                 let isBeingNamed = element.id == namingElementID
-                context.stroke(
-                    path(for: element.geometry),
-                    with: .color(isBeingNamed ? palette.aqua : palette.ink.opacity(0.82)),
-                    style: strokeStyle(for: element.geometry, isBeingNamed: isBeingNamed)
-                )
+                if element.image == nil || isBeingNamed {
+                    context.stroke(
+                        path(for: element.geometry),
+                        with: .color(element.color.color(in: colorScheme)),
+                        style: strokeStyle(for: element.geometry, isBeingNamed: isBeingNamed)
+                    )
+                }
 
                 if !element.name.isEmpty, !isBeingNamed {
+                    if let bounds = element.labelBounds,
+                       elements.contains(where: { $0.image != nil && $0.geometry.bounds.intersects(bounds) }) {
+                        // A screenshot may be any color, independent of Tiro's
+                        // theme. Keep annotations readable over its pixels.
+                        context.fill(
+                            Path(roundedRect: bounds, cornerRadius: 4),
+                            with: .color(palette.surface.opacity(0.94))
+                        )
+                    }
                     context.draw(
                         Text(element.name)
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -540,7 +726,7 @@ struct WireframeArtworkView: View {
         case .pen:
             context.stroke(
                 path(for: .stroke(draftPoints)),
-                with: .color(palette.aqua.opacity(0.9)),
+                with: .color(drawingColor.color(in: colorScheme)),
                 style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round)
             )
 
@@ -584,14 +770,14 @@ struct WireframeArtworkView: View {
     ) {
         context.stroke(
             path(for: geometry),
-            with: .color(palette.aqua.opacity(0.9)),
+            with: .color(drawingColor.color(in: colorScheme)),
             style: style
         )
     }
 
     private func path(for geometry: WireframeGeometry) -> Path {
         switch geometry {
-        case let .rectangle(rect):
+        case let .rectangle(rect), let .screenshot(rect):
             return Path(rect)
 
         case let .circle(center, radius):

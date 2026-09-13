@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 
@@ -51,6 +52,19 @@ enum WireframeTool: String, CaseIterable, Identifiable {
         case .dottedFrame: "Click two corners for a dotted container"
         }
     }
+
+    var actionLabel: String {
+        switch self {
+        case .rectangle: "Draw a rectangle"
+        case .circle: "Draw a circle"
+        case .ellipse: "Draw an ellipse"
+        case .pen: "Draw with pen"
+        case .rename: "Label a shape"
+        case .mobileFrame: "Draw a mobile frame"
+        case .browserFrame: "Draw a browser"
+        case .dottedFrame: "Draw a dotted frame"
+        }
+    }
 }
 
 enum WireframeGeometry: Equatable {
@@ -66,6 +80,7 @@ enum WireframeGeometry: Equatable {
     case mobileFrame(CGRect)
     case browserFrame(CGRect)
     case dottedFrame(CGRect)
+    case screenshot(CGRect)
 
     var bounds: CGRect {
         switch self {
@@ -104,7 +119,8 @@ enum WireframeGeometry: Equatable {
             }
         case let .mobileFrame(rect),
              let .browserFrame(rect),
-             let .dottedFrame(rect):
+             let .dottedFrame(rect),
+             let .screenshot(rect):
             return rect
         }
     }
@@ -137,6 +153,8 @@ enum WireframeGeometry: Equatable {
             return .browserFrame(rect.offsetBy(dx: dx, dy: dy))
         case let .dottedFrame(rect):
             return .dottedFrame(rect.offsetBy(dx: dx, dy: dy))
+        case let .screenshot(rect):
+            return .screenshot(rect.offsetBy(dx: dx, dy: dy))
         }
     }
 
@@ -145,7 +163,8 @@ enum WireframeGeometry: Equatable {
         case let .rectangle(rect),
              let .mobileFrame(rect),
              let .browserFrame(rect),
-             let .dottedFrame(rect):
+             let .dottedFrame(rect),
+             let .screenshot(rect):
             let clampedX = min(max(point.x, rect.minX), rect.maxX)
             let clampedY = min(max(point.y, rect.minY), rect.maxY)
             if rect.contains(point) {
@@ -225,11 +244,28 @@ struct WireframeElement: Identifiable, Equatable {
     let id: UUID
     var geometry: WireframeGeometry
     var name: String
+    var color: WireframeColor
+    var image: NSImage?
 
-    init(id: UUID = UUID(), geometry: WireframeGeometry, name: String = "") {
+    init(
+        id: UUID = UUID(), geometry: WireframeGeometry,
+        name: String = "", color: WireframeColor = .ink, image: NSImage? = nil
+    ) {
         self.id = id
         self.geometry = geometry
         self.name = name
+        self.color = color
+        self.image = image
+    }
+
+    var labelBounds: CGRect? {
+        guard !name.isEmpty else { return nil }
+        let font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+        let rounded = font.fontDescriptor.withDesign(.rounded).flatMap { NSFont(descriptor: $0, size: 12) } ?? font
+        let size = (name as NSString).size(withAttributes: [.font: rounded])
+        let anchor = geometry.labelAnchor
+        return CGRect(x: anchor.x - size.width / 2 - 4, y: anchor.y - size.height / 2 - 3,
+                      width: size.width + 8, height: size.height + 6)
     }
 }
 
@@ -307,13 +343,14 @@ enum WireframeGeometryFactory {
 @MainActor
 final class WireframeCanvasModel: ObservableObject {
     @Published private(set) var elements: [WireframeElement] = []
-    @Published private(set) var selectedTool: WireframeTool = .rectangle
+    @Published private(set) var selectedTool: WireframeTool = .mobileFrame
     @Published private(set) var draftPoints: [CGPoint] = []
     @Published private(set) var namingElementID: UUID?
     @Published var namingText = ""
     @Published private(set) var namingSkipIsArmed = false
     @Published private(set) var contentRevision = 0
     @Published private(set) var isPinned = false
+    @Published private(set) var selectedColor: WireframeColor = .ink
 
     var canUndo: Bool {
         !elements.isEmpty
@@ -343,8 +380,39 @@ final class WireframeCanvasModel: ObservableObject {
         }
     }
 
+    var cursorHint: String? {
+        guard namingElementID == nil else { return nil }
+        switch selectedTool {
+        case .rectangle, .mobileFrame, .browserFrame, .dottedFrame:
+            return draftPoints.isEmpty ? "Click first point" : "Click second point"
+        case .circle: return draftPoints.isEmpty ? "Click center" : "Click edge"
+        case .ellipse:
+            return ["Click first point", "Click axis end", "Click width"][min(draftPoints.count, 2)]
+        case .pen: return draftPoints.isEmpty ? "Drag to draw" : nil
+        case .rename: return "Click border to label"
+        }
+    }
+
+    func insertScreenshot(_ image: NSImage, canvasSize: CGSize) {
+        guard let rect = WireframeScreenshotLayout.frame(imageSize: image.size, canvasSize: canvasSize) else { return }
+        finishPendingName()
+        cancelDraft()
+        elements.append(WireframeElement(geometry: .screenshot(rect), image: image))
+        contentRevision += 1
+    }
+
     func togglePin() {
         isPinned.toggle()
+    }
+
+    func selectColor(_ color: WireframeColor) {
+        selectedColor = color
+        if let index = elements.firstIndex(where: { $0.id == namingElementID }),
+           elements[index].color != color {
+            elements[index].color = color
+            contentRevision += 1
+        }
+        finishPendingName()
     }
 
     func selectTool(_ tool: WireframeTool) {
@@ -483,6 +551,27 @@ final class WireframeCanvasModel: ObservableObject {
         draftPoints = []
     }
 
+    /// Returns false only when there is no in-progress action to escape.
+    @discardableResult
+    func handleEscape() -> Bool {
+        if !draftPoints.isEmpty {
+            cancelDraft()
+            return true
+        }
+        if namingElementID != nil {
+            cancelNaming()
+            return true
+        }
+        return false
+    }
+
+    var hasUnsavedName: Bool {
+        guard let element = elements.first(where: { $0.id == namingElementID }) else {
+            return false
+        }
+        return namingText.trimmingCharacters(in: .whitespacesAndNewlines) != element.name
+    }
+
     func undoLast() {
         guard let removed = elements.popLast() else { return }
         contentRevision += 1
@@ -512,7 +601,7 @@ final class WireframeCanvasModel: ObservableObject {
     }
 
     private func addElement(_ geometry: WireframeGeometry) {
-        let element = WireframeElement(geometry: geometry)
+        let element = WireframeElement(geometry: geometry, color: selectedColor)
         elements.append(element)
         contentRevision += 1
         draftPoints = []
@@ -522,6 +611,7 @@ final class WireframeCanvasModel: ObservableObject {
     private func beginNaming(_ element: WireframeElement) {
         namingElementID = element.id
         namingText = element.name
+        selectedColor = element.color
         namingSkipIsArmed = false
     }
 

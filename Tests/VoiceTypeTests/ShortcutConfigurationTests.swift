@@ -7,6 +7,7 @@ final class ShortcutConfigurationTests: XCTestCase {
         let configuration = ShortcutConfiguration.defaults
 
         XCTAssertEqual(configuration.voiceTyping.displayName, "⌃⌥")
+        XCTAssertEqual(configuration.openWireframe?.displayName, "⌃⌥W")
         XCTAssertEqual(configuration.pasteLast?.displayName, "⌃⌘V")
         XCTAssertNil(configuration.openHistory)
         XCTAssertNil(configuration.captureScreen)
@@ -72,6 +73,43 @@ final class ShortcutConfigurationTests: XCTestCase {
         )
 
         XCTAssertEqual(configuration.voiceTyping.displayName, "⌥D")
+    }
+
+    func testWireframeShortcutCanBeChangedButNotCleared() throws {
+        var configuration = ShortcutConfiguration.defaults
+
+        try configuration.set(
+            .key(kVK_ANSI_B, label: "B", modifiers: UInt32(optionKey | cmdKey)),
+            for: .openWireframe
+        )
+
+        XCTAssertEqual(configuration.openWireframe?.displayName, "⌥⌘B")
+        XCTAssertThrowsError(try configuration.set(nil, for: .openWireframe)) { error in
+            XCTAssertEqual(
+                error as? ShortcutConfigurationError,
+                .wireframeRequired
+            )
+        }
+    }
+
+    func testDefaultWireframeShortcutSupersedesModifierOnlyVoiceActivation() throws {
+        let configuration = ShortcutConfiguration.defaults
+        let wireframeShortcut = try XCTUnwrap(configuration.openWireframe)
+
+        XCTAssertTrue(
+            configuration.shouldCancelModifierVoiceActivation(for: wireframeShortcut)
+        )
+
+        var keyedVoiceConfiguration = configuration
+        try keyedVoiceConfiguration.set(
+            .key(kVK_ANSI_D, label: "D", modifiers: UInt32(controlKey | optionKey)),
+            for: .voiceTyping
+        )
+        XCTAssertFalse(
+            keyedVoiceConfiguration.shouldCancelModifierVoiceActivation(
+                for: wireframeShortcut
+            )
+        )
     }
 
     func testChangingVoiceShortcutKeepsAttachmentAsSingleKey() throws {
@@ -164,7 +202,46 @@ final class ShortcutConfigurationTests: XCTestCase {
         let decoded = try JSONDecoder().decode(ShortcutConfiguration.self, from: data)
 
         XCTAssertNil(decoded.openHistory)
+        XCTAssertNil(decoded.openWireframe)
         XCTAssertEqual(decoded.voiceTyping, current.voiceTyping)
+    }
+
+    func testRestoresDefaultWireframeShortcutForExistingUsers() throws {
+        let current = ShortcutConfiguration.defaults
+        let legacy = LegacyShortcutConfiguration(
+            voiceTyping: current.voiceTyping,
+            pasteLast: current.pasteLast,
+            captureScreen: current.captureScreen,
+            captureSelection: current.captureSelection,
+            attachScreenshot: current.attachScreenshot
+        )
+        let data = try JSONEncoder().encode(legacy)
+        var decoded = try JSONDecoder().decode(ShortcutConfiguration.self, from: data)
+
+        decoded.restoreMissingWireframeShortcutIfAvailable()
+
+        XCTAssertEqual(decoded.openWireframe?.displayName, "⌃⌥W")
+        XCTAssertNoThrow(try decoded.validate())
+    }
+
+    func testWireframeMigrationPreservesAnExistingConflictingShortcut() throws {
+        let current = ShortcutConfiguration.defaults
+        let conflictingShortcut = try XCTUnwrap(current.openWireframe)
+        let legacy = LegacyShortcutConfiguration(
+            voiceTyping: current.voiceTyping,
+            pasteLast: current.pasteLast,
+            captureScreen: conflictingShortcut,
+            captureSelection: current.captureSelection,
+            attachScreenshot: current.attachScreenshot
+        )
+        let data = try JSONEncoder().encode(legacy)
+        var decoded = try JSONDecoder().decode(ShortcutConfiguration.self, from: data)
+
+        decoded.restoreMissingWireframeShortcutIfAvailable()
+
+        XCTAssertNil(decoded.openWireframe)
+        XCTAssertEqual(decoded.captureScreen, conflictingShortcut)
+        XCTAssertNoThrow(try decoded.validate())
     }
 }
 

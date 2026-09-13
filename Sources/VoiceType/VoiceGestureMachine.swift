@@ -58,6 +58,7 @@ struct VoiceGestureMachine {
 
 enum VoiceGestureAction: Equatable {
     case beginRecording
+    case cancelRecording
     case scheduleFinish(after: TimeInterval)
     case cancelScheduledFinish
     case lockRecording
