@@ -73,10 +73,34 @@ enum TextInsertionService {
     }
 
     private static func prefersPasteCommand(for processID: pid_t) -> Bool {
-        guard let bundleIdentifier = NSRunningApplication(
+        guard let application = NSRunningApplication(
             processIdentifier: processID
-        )?.bundleIdentifier else { return false }
-        return browserBundleIdentifiers.contains(bundleIdentifier)
+        ) else { return false }
+        return prefersPasteCommand(
+            bundleIdentifier: application.bundleIdentifier,
+            bundleURL: application.bundleURL
+        )
+    }
+
+    static func prefersPasteCommand(bundleIdentifier: String?, bundleURL: URL?) -> Bool {
+        if let bundleIdentifier, browserBundleIdentifiers.contains(bundleIdentifier) {
+            return true
+        }
+
+        // Chromium may report a successful AXSelectedText write without delivering
+        // any input to an Electron editor or xterm terminal. Use its native Paste
+        // command instead. Detect the framework so packaged apps and development
+        // Electron hosts behave alike, without depending on their product names.
+        guard let bundleURL else { return false }
+        let electronFramework = bundleURL.appendingPathComponent(
+            "Contents/Frameworks/Electron Framework.framework",
+            isDirectory: true
+        )
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(
+            atPath: electronFramework.path,
+            isDirectory: &isDirectory
+        ) && isDirectory.boolValue
     }
 
     static func performPasteMenuAction(in processID: pid_t) -> Bool {

@@ -1,7 +1,5 @@
-# Tiro public beta 8
+# Tiro public beta 9
 
-This beta makes the Wireframe Board faster to open, draw on, and reuse.
+This beta fixes text insertion in Electron-based apps.
 
-- Open the board from anywhere with the customizable Control + Option + W shortcut.
-- Insert your latest Tiro screenshot, draw with four adaptive ink colors, and cancel unfinished work with Escape.
-- Save a wireframe and open that exact version in Preview, with clearer tools and cursor guidance throughout.
+- Transcribed text now uses the app's native Paste command in Electron editors and terminals, including renamed and development builds.
